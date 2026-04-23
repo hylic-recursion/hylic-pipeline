@@ -42,9 +42,12 @@ impl<D, N, Seed, H, R> SeedPipeline<D, N, Seed, H, R>
 where D: Domain<N>,
       N: 'static, Seed: 'static, H: 'static, R: 'static,
 {
-    /// Domain-generic constructor: takes the three base slots in
-    /// whatever storage form the domain `D` requires.
-    pub fn new_domain(
+    /// Construct from already-domain-typed slots (grow, seeds,
+    /// fold). For the common path where the caller has plain
+    /// closures instead, use the per-domain `new` inherent method
+    /// (e.g. on `SeedPipeline<Shared, ...>` or
+    /// `SeedPipeline<Local, ...>`).
+    pub fn from_slots(
         grow:            <D as Domain<N>>::Grow<Seed, N>,
         seeds_from_node: <D as Domain<N>>::Graph<Seed>,
         fold:            <D as Domain<N>>::Fold<H, R>,
