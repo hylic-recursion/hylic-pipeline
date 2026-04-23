@@ -4,6 +4,7 @@
 mod wrap_fold_patterns;
 mod graph_transform;
 mod memoize;
+mod memoize_fused;
 mod n_change;
 mod explain;
 mod multi_axis;
