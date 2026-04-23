@@ -7,9 +7,7 @@
 
 use hylic::ops::IdentityLift;
 
-pub mod then_lift;
-pub mod transforms_shared;
-pub mod transforms_local;
+pub mod primitives;
 pub mod source_impl;
 
 pub struct LiftedPipeline<Base, L = IdentityLift> {
