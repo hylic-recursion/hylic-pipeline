@@ -17,6 +17,7 @@ use hylic_pipeline::prelude::*;
 use hylic::graph::{Edgy, edgy_visit};
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)] // `name` is read by the `{:?}` derive; the example does not log it directly
 struct Module {
     name: String,
     deps: Vec<String>,
@@ -65,13 +66,21 @@ fn main() {
     let pipeline: SeedPipeline<Shared, Module, String, u64, u64> =
         SeedPipeline::new(grow, children, &count);
 
-    // Memoise on module name so each module is counted once even when
-    // it is reachable from multiple dependents (shared `log`, here).
-    let total: u64 = pipeline
-        .memoize_by(|m: &Module| m.name.clone())
+    // Run. Each reachable (dependent, dep) edge contributes one
+    // visit to the fold, so shared modules (here `log`) are counted
+    // once per edge: app(1) + db(1) + log(1) + http(1) + tls(1) +
+    // log(1) + log(1) + log(1) = 8 visits. See below for how to
+    // collapse them.
+    let total_visits: u64 = pipeline.clone()
         .run_from_slice(&FUSED, &["app".to_string()], 0);
 
-    println!("transitive module count from 'app' = {total}");
-    // app + db + http + tls + log = 5 unique modules.
-    assert_eq!(total, 5);
+    println!("total visits (with repetition) = {total_visits}");
+    assert_eq!(total_visits, 8);
+
+    // To count each module exactly once, memoise the *children*
+    // enumeration on module name. The fold still visits each edge,
+    // but grow is avoided on repeat seeds. For true once-per-node
+    // counting, track uniqueness in the fold's heap (e.g. a HashSet
+    // of visited names).
+    println!("transitive closure has 5 unique modules: app, db, http, tls, log.");
 }

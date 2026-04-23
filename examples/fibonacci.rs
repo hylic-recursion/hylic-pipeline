@@ -1,16 +1,22 @@
-//! Fibonacci as a tree fold.
+//! Fibonacci as a naïve tree fold.
 //!
-//! The treeish expands `n` into two children `n-1` and `n-2`; the
-//! fold adds child results. The obvious naïve recursion is
-//! exponential in `n`; `memoize_by` on the pipeline makes it
-//! linear, and demonstrates a Stage-2 sugar in isolation.
+//! The treeish expands `n` into two children `n - 1` and `n - 2`;
+//! the fold adds their results. The recursion is deliberately naïve
+//! (exponential in `n`) — its purpose is to demonstrate the pipeline
+//! shape under both executors rather than to compute Fibonacci
+//! efficiently.
+//!
+//! A note on memoisation: `memoize_by` caches the *children* of a
+//! node, not the *fold result*, so it does not collapse the
+//! exponential recursion. For real memoisation the caller must
+//! fold over a DAG whose shared nodes are already collapsed in the
+//! tree structure (see `examples/resolution_graph.rs`).
 //!
 //! Run: `cargo run --example fibonacci -p hylic-pipeline`
 
 use hylic_pipeline::prelude::*;
 
 fn main() {
-    // Base recursion: fib(n) = fib(n - 1) + fib(n - 2); fib(0) = 0; fib(1) = 1.
     let children = treeish(|n: &u64| match *n {
         0 | 1 => vec![],
         k     => vec![k - 1, k - 2],
@@ -25,25 +31,13 @@ fn main() {
     let pipeline: TreeishPipeline<Shared, u64, u64, u64> =
         TreeishPipeline::new(children, &add);
 
-    // Without memoisation — exponential, use small n.
-    let naive: u64 = pipeline.clone().run_from_node(&FUSED, &10);
-    println!("fib(10) naive        = {naive}");
-    assert_eq!(naive, 55);
+    // Sequential (Fused) — small n to keep the run cheap.
+    let r_seq: u64 = pipeline.clone().run_from_node(&FUSED, &15);
+    println!("fib(15) sequential = {r_seq}");
+    assert_eq!(r_seq, 610);
 
-    // With memoisation on the node value (N = u64) — subtree results
-    // cached; safely handles fib(40) and beyond.
-    let memoised: u64 = pipeline.clone()
-        .memoize_by(|n: &u64| *n)
-        .run_from_node(&FUSED, &40);
-    println!("fib(40) memoised     = {memoised}");
-    assert_eq!(memoised, 102_334_155);
-
-    // Under the parallel Funnel executor. For this workload the sum
-    // itself is trivial, so Funnel is dominated by scheduling; the
-    // point is to show the same pipeline runs unchanged in parallel.
-    let parallel: u64 = pipeline
-        .memoize_by(|n: &u64| *n)
-        .run_from_node(&exec(funnel::Spec::default(4)), &40);
-    println!("fib(40) funnel(4)    = {parallel}");
-    assert_eq!(parallel, 102_334_155);
+    // Parallel (Funnel) — same pipeline, different executor.
+    let r_par: u64 = pipeline.run_from_node(&exec(funnel::Spec::default(4)), &15);
+    println!("fib(15) parallel   = {r_par}");
+    assert_eq!(r_par, 610);
 }
