@@ -15,7 +15,7 @@ pub mod source_impl;
 /// a single lift `L` (usually a `ComposedLift` tree built from
 /// sugar chaining). Implements both `TreeishSource` and, where
 /// `Base` does, `SeedSource`.
-#[must_use = "a LiftedPipeline carries the transformation plan; call `.run_from_node(...)` to execute it"]
+#[must_use]
 pub struct LiftedPipeline<Base, L = IdentityLift> {
     pub(crate) base:     Base,
     pub(crate) pre_lift: L,

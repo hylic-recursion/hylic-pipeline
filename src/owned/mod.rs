@@ -14,7 +14,7 @@ use super::source::PipelineSourceOnce;
 /// One-shot pipeline over the `Owned` domain. Not `Clone`; runs
 /// via [`crate::source::PipelineExecOnce::run_from_node_once`],
 /// which consumes `self`.
-#[must_use = "an OwnedPipeline is consumed by `run_from_node_once(...)`; constructing it without running has no effect"]
+#[must_use]
 pub struct OwnedPipeline<N, H, R>
 where N: 'static, H: 'static, R: 'static,
 {

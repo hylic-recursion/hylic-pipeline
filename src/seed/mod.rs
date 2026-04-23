@@ -11,7 +11,7 @@ pub mod source_impl;
 /// Stage-1 typestate pipeline with three base slots: `grow`,
 /// `seeds_from_node`, and `fold`. Used when the tree is discovered
 /// lazily from `Seed` references.
-#[must_use = "a SeedPipeline carries the transformation plan; call `.run(...)` to execute it"]
+#[must_use]
 pub struct SeedPipeline<D, N, Seed, H, R>
 where D: Domain<N>,
       N: 'static, Seed: 'static, H: 'static, R: 'static,

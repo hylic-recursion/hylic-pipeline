@@ -12,7 +12,7 @@ pub mod source_impl;
 /// Stage-1 typestate pipeline with two base slots: `treeish`
 /// (graph) and `fold`. Used when children are directly enumerable
 /// from nodes of the same type (`N → N*`).
-#[must_use = "a TreeishPipeline carries the transformation plan; call `.run_from_node(...)` to execute it"]
+#[must_use]
 pub struct TreeishPipeline<D, N, H, R>
 where D: Domain<N>,
       N: 'static, H: 'static, R: 'static,
