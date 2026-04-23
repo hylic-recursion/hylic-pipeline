@@ -5,13 +5,12 @@
 //! use hylic_pipeline::prelude::*;
 //! ```
 //!
-//! gives: everything in hylic's core prelude (Shared Fold/Edgy
-//! constructors, executor helpers, lift atoms, explainer helpers)
-//! PLUS pipeline types (`SeedPipeline`, `LiftedPipeline`, …), source
-//! traits (`TreeishSource`, `PipelineExecSeed`), and the Shared sugar
-//! trait (`LiftedSugarsShared`).
-//!
-//! For Local pipelines, also `use hylic_pipeline::prelude::local::*;`.
+//! gives: everything in hylic's core prelude (domain markers,
+//! Shared-default Fold/Edgy constructors, executor helpers, lift
+//! atoms, explainer helpers) PLUS pipeline types
+//! (`SeedPipeline`, `LiftedPipeline`, …), source traits
+//! (`TreeishSource`, `PipelineExecSeed`), and both sugar traits
+//! (`LiftedSugarsShared`, `LiftedSugarsLocal`).
 
 pub use hylic::prelude::*;
 
@@ -20,16 +19,5 @@ pub use crate::{
     TreeishSource, SeedSource,
     PipelineExec, PipelineExecSeed, PipelineExecOnce,
     PipelineSourceOnce,
-    LiftedSugarsShared,
+    LiftedSugarsShared, LiftedSugarsLocal,
 };
-
-pub mod local {
-    //! Local pipeline extras (add to `prelude::*`).
-    pub use hylic::prelude::local::*;
-    pub use crate::LiftedSugarsLocal;
-}
-
-pub mod owned {
-    //! Owned pipeline extras (add to `prelude::*`).
-    pub use hylic::prelude::owned::*;
-}

@@ -2,7 +2,6 @@
 //! Run: `cargo run --example prelude_local_minimal -p hylic-pipeline`
 
 use hylic_pipeline::prelude::*;
-use hylic_pipeline::prelude::local::*;
 use hylic::domain::local as ldom;
 
 fn main() {
