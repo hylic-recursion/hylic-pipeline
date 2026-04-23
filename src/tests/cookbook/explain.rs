@@ -3,7 +3,7 @@
 use std::sync::{Arc, Mutex};
 use crate::{SeedPipeline, PipelineExecSeed, LiftedSugarsShared};
 use hylic::domain::shared::{self as dom, fold::fold};
-use hylic::cata::exec::funnel;
+use hylic::exec::funnel;
 use hylic::domain::Shared;
 use hylic::graph::edgy_visit;
 use hylic::prelude::{ExplainerHeap, ExplainerResult, trace_fold_compact};

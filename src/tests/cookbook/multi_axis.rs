@@ -4,7 +4,7 @@
 use std::sync::Arc;
 use crate::{SeedPipeline, PipelineExecSeed, LiftedSugarsShared};
 use hylic::domain::shared::{self as dom, fold::fold};
-use hylic::cata::exec::funnel;
+use hylic::exec::funnel;
 use hylic::domain::Shared;
 use hylic::graph::edgy_visit;
 

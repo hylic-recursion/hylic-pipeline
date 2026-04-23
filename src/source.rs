@@ -27,7 +27,7 @@
 //! NOT inherit `.run(...)` — that's a compile-time guarantee.
 
 use std::sync::Arc;
-use hylic::cata::exec::Executor;
+use hylic::exec::Executor;
 use hylic::domain::{Domain, Shared};
 use hylic::graph::{self, Edgy, Treeish};
 use hylic::ops::{Lift, LiftedNode, SeedLift, TreeOps};

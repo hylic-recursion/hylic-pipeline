@@ -1,7 +1,7 @@
 //! Cookbook: LiftBare — apply lifts directly to (treeish, fold) with
 //! no pipeline machinery.
 
-use hylic::cata::exec::funnel;
+use hylic::exec::funnel;
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::domain::Shared;
 use hylic::graph::{treeish, Treeish};

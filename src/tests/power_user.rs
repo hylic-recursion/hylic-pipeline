@@ -41,7 +41,7 @@ fn full_chain_with_explainer_fused() {
 
 #[test]
 fn full_chain_with_explainer_funnel() {
-    use hylic::cata::exec::funnel;
+    use hylic::exec::funnel;
 
     let result: ExplainerResult<u64, u64, (u64, bool)> = tree_pipeline()
         .filter_seeds(|s: &u64| *s != 2)

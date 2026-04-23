@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use crate::{TreeishPipeline, PipelineExec, LiftedSugarsShared};
 use hylic::domain::shared::{self as dom, fold::fold};
-use hylic::cata::exec::funnel;
+use hylic::exec::funnel;
 use hylic::graph::treeish;
 use hylic::domain::Shared;
 

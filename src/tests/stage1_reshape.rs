@@ -3,7 +3,7 @@
 use std::sync::Arc;
 use crate::{SeedPipeline, PipelineExecSeed};
 use hylic::domain::shared::{self as dom, fold::fold};
-use hylic::cata::exec::funnel;
+use hylic::exec::funnel;
 use hylic::graph::edgy_visit;
 
 fn flat_children(flat: Vec<Vec<u64>>) -> Arc<Vec<Vec<u64>>> { Arc::new(flat) }

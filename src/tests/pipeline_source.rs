@@ -7,7 +7,7 @@ use crate::{
     LiftedSugarsShared,
 };
 use hylic::domain::shared::{self as dom, fold::fold};
-use hylic::cata::exec::funnel;
+use hylic::exec::funnel;
 use hylic::graph::edgy_visit;
 
 fn basic_pipeline() -> SeedPipeline<hylic::domain::Shared, u64, u64, u64, u64> {

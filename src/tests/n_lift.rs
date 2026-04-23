@@ -9,7 +9,7 @@
 use std::sync::Arc;
 use crate::{TreeishPipeline, PipelineExec};
 use hylic::domain::shared::{self as dom, fold::fold};
-use hylic::cata::exec::funnel;
+use hylic::exec::funnel;
 use hylic::graph::{treeish, treeish_visit, Treeish};
 use hylic::domain::Shared;
 
