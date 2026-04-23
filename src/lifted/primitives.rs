@@ -25,6 +25,7 @@ where Base: TreeishSource,
               <Base as TreeishSource>::H,
               <Base as TreeishSource>::R>,
 {
+    // ANCHOR: then_lift_primitive
     /// Sole composition primitive: post-compose `outer` onto the chain.
     pub fn then_lift<L2>(
         self,
@@ -38,7 +39,9 @@ where Base: TreeishSource,
             pre_lift: ComposedLift::compose(self.pre_lift, outer),
         }
     }
+    // ANCHOR_END: then_lift_primitive
 
+    // ANCHOR: before_lift_primitive
     /// Pre-compose a type-preserving lift `first` before the chain.
     /// Restricted to `L0` whose outputs equal Base's inputs (Rust
     /// enforces this via the use-site `ComposedLift<L0, L>` bound).
@@ -48,4 +51,5 @@ where Base: TreeishSource,
     {
         LiftedPipeline { base: self.base, pre_lift: ComposedLift::compose(first, self.pre_lift) }
     }
+    // ANCHOR_END: before_lift_primitive
 }

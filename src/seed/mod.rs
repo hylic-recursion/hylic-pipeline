@@ -7,6 +7,7 @@ use hylic::domain::Domain;
 pub mod reshape;
 pub mod source_impl;
 
+// ANCHOR: seed_pipeline_struct
 pub struct SeedPipeline<D, N, Seed, H, R>
 where D: Domain<N>,
       N: 'static, Seed: 'static, H: 'static, R: 'static,
@@ -15,6 +16,7 @@ where D: Domain<N>,
     pub(crate) seeds_from_node: <D as Domain<N>>::Graph<Seed>,
     pub(crate) fold:            <D as Domain<N>>::Fold<H, R>,
 }
+// ANCHOR_END: seed_pipeline_struct
 
 impl<D, N, Seed, H, R> Clone for SeedPipeline<D, N, Seed, H, R>
 where D: Domain<N>,

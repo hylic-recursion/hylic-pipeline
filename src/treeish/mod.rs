@@ -8,6 +8,7 @@ use hylic::domain::Domain;
 pub mod reshape;
 pub mod source_impl;
 
+// ANCHOR: treeish_pipeline_struct
 pub struct TreeishPipeline<D, N, H, R>
 where D: Domain<N>,
       N: 'static, H: 'static, R: 'static,
@@ -15,6 +16,7 @@ where D: Domain<N>,
     pub(crate) treeish: <D as Domain<N>>::Graph<N>,
     pub(crate) fold:    <D as Domain<N>>::Fold<H, R>,
 }
+// ANCHOR_END: treeish_pipeline_struct
 
 impl<D, N, H, R> Clone for TreeishPipeline<D, N, H, R>
 where D: Domain<N>,

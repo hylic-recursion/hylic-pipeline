@@ -19,6 +19,7 @@ use hylic::domain::{Domain, Shared};
 use hylic::ops::{ComposedLift, IdentityLift, Lift, ShapeLift};
 use hylic::prelude::explainer::{ExplainerHeap, ExplainerResult};
 
+// ANCHOR: lifted_sugars_shared_trait
 pub trait LiftedSugarsShared<N, H, R>:
     TreeishSource<Domain = Shared, N = N, H = H, R = R> + Sized
 where
@@ -95,6 +96,8 @@ where
     where N: Send + Sync, H: Send + Sync, R: Send + Sync,
     { self.then_lift(Shared::explainer_lift::<N, H, R>()) }
 }
+
+// ANCHOR_END: lifted_sugars_shared_trait
 
 // ── Impl 1: SeedPipeline — auto-lifts first ────────────────────
 

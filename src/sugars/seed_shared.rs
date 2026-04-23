@@ -8,6 +8,7 @@ use hylic::domain::shared::fold::Fold;
 use hylic::graph::Edgy;
 use crate::seed::SeedPipeline;
 
+// ANCHOR: seed_sugars_shared_trait
 pub trait SeedSugarsShared<N, Seed, H, R>: Sized
 where N: Clone + 'static, Seed: Clone + 'static,
       H: Clone + 'static, R: Clone + 'static,
@@ -30,6 +31,8 @@ where N: Clone + 'static, Seed: Clone + 'static,
           ToNew:   Fn(&Seed) -> Seed2 + Send + Sync + 'static,
           FromNew: Fn(&Seed2) -> Seed + Send + Sync + 'static;
 }
+
+// ANCHOR_END: seed_sugars_shared_trait
 
 impl<N, Seed, H, R> SeedSugarsShared<N, Seed, H, R> for SeedPipeline<Shared, N, Seed, H, R>
 where N: Clone + 'static, Seed: Clone + 'static,

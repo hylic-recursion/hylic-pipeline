@@ -8,6 +8,7 @@ use hylic::domain::shared::fold::Fold;
 use hylic::graph::Treeish;
 use crate::treeish::TreeishPipeline;
 
+// ANCHOR: treeish_sugars_shared_trait
 pub trait TreeishSugarsShared<N, H, R>: Sized
 where N: Clone + 'static, H: Clone + 'static, R: Clone + 'static,
 {
@@ -17,6 +18,8 @@ where N: Clone + 'static, H: Clone + 'static, R: Clone + 'static,
           Co:     Fn(&N) -> N2 + Send + Sync + 'static,
           Contra: Fn(&N2) -> N + Send + Sync + 'static;
 }
+
+// ANCHOR_END: treeish_sugars_shared_trait
 
 impl<N, H, R> TreeishSugarsShared<N, H, R> for TreeishPipeline<Shared, N, H, R>
 where N: Clone + 'static, H: Clone + 'static, R: Clone + 'static,

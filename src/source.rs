@@ -36,6 +36,7 @@ use hylic::ops::{Lift, LiftedNode, SeedLift, TreeOps};
 
 /// A by-reference pipeline that yields `(treeish, fold)` for
 /// execution. Seed-agnostic.
+// ANCHOR: treeish_source_trait
 pub trait TreeishSource {
     type Domain: Domain<Self::N>;
     type N: Clone + 'static;
@@ -56,6 +57,7 @@ pub trait TreeishSource {
 /// Extends `TreeishSource` with a `Seed` type and a 3-slot yield
 /// `(grow, treeish, fold)`. Implemented by pipelines that can
 /// compose SeedLift for Entry dispatch.
+// ANCHOR: seed_source_trait
 pub trait SeedSource: TreeishSource {
     type Seed: Clone + 'static;
 
@@ -87,9 +89,12 @@ pub trait PipelineSourceOnce {
     ) -> T;
 }
 
+// ANCHOR_END: seed_source_trait
+
 // ── PipelineExec ──────────────────────────────────────
 
 /// Run-from-root execution on any `TreeishSource`.
+// ANCHOR: pipeline_exec_trait
 pub trait PipelineExec: TreeishSource {
     fn run_from_node<E>(
         &self,
@@ -108,11 +113,16 @@ pub trait PipelineExec: TreeishSource {
     }
 }
 
+// ANCHOR_END: treeish_source_trait
+
+// ANCHOR_END: pipeline_exec_trait
+
 impl<P: TreeishSource> PipelineExec for P {}
 
 // ── PipelineExecSeed ──────────────────────────────────
 
 /// Entry-dispatch execution. Only available on `SeedSource` pipelines.
+// ANCHOR: pipeline_exec_seed_trait
 pub trait PipelineExecSeed: SeedSource {
     /// Run from entry seeds via a finishing `SeedLift`. Shared-pinned.
     fn run<E>(
@@ -167,6 +177,8 @@ pub trait PipelineExecSeed: SeedSource {
         self.run(exec, entry_seeds, entry_heap)
     }
 }
+
+// ANCHOR_END: pipeline_exec_seed_trait
 
 impl<P: SeedSource> PipelineExecSeed for P {}
 

@@ -10,12 +10,14 @@ use hylic::domain::owned::Fold;
 use hylic::domain::owned::edgy::Edgy;
 use super::source::PipelineSourceOnce;
 
+// ANCHOR: owned_pipeline_struct
 pub struct OwnedPipeline<N, H, R>
 where N: 'static, H: 'static, R: 'static,
 {
     pub(crate) treeish: Edgy<N, N>,
     pub(crate) fold:    Fold<N, H, R>,
 }
+// ANCHOR_END: owned_pipeline_struct
 
 impl<N, H, R> OwnedPipeline<N, H, R>
 where N: 'static, H: 'static, R: 'static,

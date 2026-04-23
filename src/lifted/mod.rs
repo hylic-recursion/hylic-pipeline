@@ -10,10 +10,12 @@ use hylic::ops::IdentityLift;
 pub mod primitives;
 pub mod source_impl;
 
+// ANCHOR: lifted_pipeline_struct
 pub struct LiftedPipeline<Base, L = IdentityLift> {
     pub(crate) base:     Base,
     pub(crate) pre_lift: L,
 }
+// ANCHOR_END: lifted_pipeline_struct
 
 impl<Base, L> LiftedPipeline<Base, L> {
     pub(crate) fn new(base: Base, pre_lift: L) -> Self {
