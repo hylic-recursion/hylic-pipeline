@@ -9,6 +9,10 @@ pub mod reshape;
 pub mod source_impl;
 
 // ANCHOR: treeish_pipeline_struct
+/// Stage-1 typestate pipeline with two base slots: `treeish`
+/// (graph) and `fold`. Used when children are directly enumerable
+/// from nodes of the same type (`N → N*`).
+#[must_use = "a TreeishPipeline carries the transformation plan; call `.run_from_node(...)` to execute it"]
 pub struct TreeishPipeline<D, N, H, R>
 where D: Domain<N>,
       N: 'static, H: 'static, R: 'static,
@@ -36,6 +40,8 @@ impl<D, N, H, R> TreeishPipeline<D, N, H, R>
 where D: Domain<N>,
       N: 'static, H: 'static, R: 'static,
 {
+    /// Domain-generic constructor: takes the treeish and fold in
+    /// whatever storage form the domain `D` requires.
     pub fn new_domain(
         treeish: <D as Domain<N>>::Graph<N>,
         fold:    <D as Domain<N>>::Fold<H, R>,

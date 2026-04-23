@@ -8,6 +8,10 @@ pub mod reshape;
 pub mod source_impl;
 
 // ANCHOR: seed_pipeline_struct
+/// Stage-1 typestate pipeline with three base slots: `grow`,
+/// `seeds_from_node`, and `fold`. Used when the tree is discovered
+/// lazily from `Seed` references.
+#[must_use = "a SeedPipeline carries the transformation plan; call `.run(...)` to execute it"]
 pub struct SeedPipeline<D, N, Seed, H, R>
 where D: Domain<N>,
       N: 'static, Seed: 'static, H: 'static, R: 'static,
@@ -38,6 +42,8 @@ impl<D, N, Seed, H, R> SeedPipeline<D, N, Seed, H, R>
 where D: Domain<N>,
       N: 'static, Seed: 'static, H: 'static, R: 'static,
 {
+    /// Domain-generic constructor: takes the three base slots in
+    /// whatever storage form the domain `D` requires.
     pub fn new_domain(
         grow:            <D as Domain<N>>::Grow<Seed, N>,
         seeds_from_node: <D as Domain<N>>::Graph<Seed>,

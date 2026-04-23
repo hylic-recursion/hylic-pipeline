@@ -11,6 +11,11 @@ pub mod primitives;
 pub mod source_impl;
 
 // ANCHOR: lifted_pipeline_struct
+/// Stage-2 typestate pipeline. Wraps a Stage-1 `Base` source with
+/// a single lift `L` (usually a `ComposedLift` tree built from
+/// sugar chaining). Implements both `TreeishSource` and, where
+/// `Base` does, `SeedSource`.
+#[must_use = "a LiftedPipeline carries the transformation plan; call `.run_from_node(...)` to execute it"]
 pub struct LiftedPipeline<Base, L = IdentityLift> {
     pub(crate) base:     Base,
     pub(crate) pre_lift: L,

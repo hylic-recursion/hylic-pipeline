@@ -2,6 +2,8 @@
 //! Just `map_node_bi` — TreeishPipeline has no grow slot, so
 //! filter_seeds / wrap_grow / map_seed_bi don't apply.
 
+#![allow(missing_docs)] // module-level: public items are per-domain/per-policy mirrors of documented primitives
+
 use std::sync::Arc;
 use hylic::domain::Shared;
 use hylic::domain::shared::fold::Fold;

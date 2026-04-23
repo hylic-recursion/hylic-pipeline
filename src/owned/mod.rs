@@ -11,6 +11,10 @@ use hylic::domain::owned::edgy::Edgy;
 use super::source::PipelineSourceOnce;
 
 // ANCHOR: owned_pipeline_struct
+/// One-shot pipeline over the `Owned` domain. Not `Clone`; runs
+/// via [`crate::source::PipelineExecOnce::run_from_node_once`],
+/// which consumes `self`.
+#[must_use = "an OwnedPipeline is consumed by `run_from_node_once(...)`; constructing it without running has no effect"]
 pub struct OwnedPipeline<N, H, R>
 where N: 'static, H: 'static, R: 'static,
 {
@@ -22,6 +26,7 @@ where N: 'static, H: 'static, R: 'static,
 impl<N, H, R> OwnedPipeline<N, H, R>
 where N: 'static, H: 'static, R: 'static,
 {
+    /// Construct an owned pipeline from its two slots.
     pub fn new(treeish: Edgy<N, N>, fold: Fold<N, H, R>) -> Self {
         OwnedPipeline { treeish, fold }
     }

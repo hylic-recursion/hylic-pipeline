@@ -9,6 +9,9 @@ impl<D, N, Seed, H, R> SeedPipeline<D, N, Seed, H, R>
 where D: Domain<N>,
       N: 'static, Seed: 'static, H: 'static, R: 'static,
 {
+    /// Rewrite all three base slots consistently. Sole Stage-1
+    /// primitive; every Stage-1 sugar (`filter_seeds`, `wrap_grow`,
+    /// `map_node_bi`, `map_seed_bi`) is a thin wrapper over this.
     pub fn reshape<N2, Seed2, H2, R2, FGrow, FSeeds, FFold>(
         self,
         reshape_grow:  FGrow,

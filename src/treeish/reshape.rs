@@ -7,6 +7,9 @@ impl<D, N, H, R> TreeishPipeline<D, N, H, R>
 where D: Domain<N>,
       N: 'static, H: 'static, R: 'static,
 {
+    /// Rewrite both base slots consistently. Sole Stage-1
+    /// primitive for `TreeishPipeline`; `map_node_bi` is its only
+    /// inherent sugar.
     pub fn reshape<N2, H2, R2, FT, FF>(
         self,
         reshape_treeish: FT,

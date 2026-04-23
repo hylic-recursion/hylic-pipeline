@@ -8,6 +8,8 @@
 //! `LiftedPipeline<…Local base…>` — no `.lift()` ceremony required
 //! for Stage-1 types, no `_local` suffix clutter.
 
+#![allow(missing_docs)] // module-level: public items are per-domain/per-policy mirrors of documented primitives
+
 use crate::lifted::LiftedPipeline;
 use crate::seed::SeedPipeline;
 use crate::treeish::TreeishPipeline;

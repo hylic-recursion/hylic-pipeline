@@ -20,6 +20,8 @@
 //! `Shared::n_lift`, `LiftBare::apply_bare`, …) can depend on `hylic`
 //! alone. The pipeline layer adds typestate and chainable sugars.
 
+#![warn(missing_docs)]
+
 pub mod source;
 pub mod seed;
 pub mod treeish;

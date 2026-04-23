@@ -1,6 +1,8 @@
 //! Stage-1 blanket sugar for `TreeishPipeline<Local, …>`. Mirror of
 //! `treeish_shared.rs` with Rc storage and no Send+Sync bounds.
 
+#![allow(missing_docs)] // module-level: public items are per-domain/per-policy mirrors of documented primitives
+
 use std::rc::Rc;
 use hylic::domain::Local;
 use hylic::domain::local::Fold;

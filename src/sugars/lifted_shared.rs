@@ -11,6 +11,8 @@
 //! normalisation rules that blocked the earlier attempt (see
 //! `KB/.plans/pipeline-surface-finish/PLAN.md` § Stage E note).
 
+#![allow(missing_docs)] // module-level: public items are per-domain/per-policy mirrors of documented primitives
+
 use crate::lifted::LiftedPipeline;
 use crate::seed::SeedPipeline;
 use crate::treeish::TreeishPipeline;
@@ -42,9 +44,11 @@ where
 
     // ── fold-side sugars ─────────────────────────────────────
 
+    // ANCHOR: wrap_init_default_body
     fn wrap_init<W>(self, wrapper: W) -> Self::With<ShapeLift<Shared, N, H, R, N, H, R>>
     where W: Fn(&N, &dyn Fn(&N) -> H) -> H + Send + Sync + 'static,
     { self.then_lift(Shared::wrap_init_lift::<N, H, R, _>(wrapper)) }
+    // ANCHOR_END: wrap_init_default_body
 
     fn wrap_accumulate<W>(self, wrapper: W) -> Self::With<ShapeLift<Shared, N, H, R, N, H, R>>
     where W: Fn(&mut H, &R, &dyn Fn(&mut H, &R)) + Send + Sync + 'static,

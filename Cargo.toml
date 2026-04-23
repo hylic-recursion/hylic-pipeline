@@ -2,10 +2,22 @@
 name = "hylic-pipeline"
 version = "0.1.0"
 edition = "2021"
-description = "Typestate pipelines and sugar traits over hylic lifts"
+rust-version = "1.75"
+description = "Typestate pipelines and sugar traits over hylic lifts."
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/simlei/hylic"
+homepage = "https://hylic.balcony.codes"
+documentation = "https://hylic.balcony.codes/pipeline/overview.html"
+keywords = ["recursion-schemes", "pipeline", "typestate", "tree", "fold"]
+categories = ["data-structures", "algorithms", "rust-patterns"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
-hylic = { path = "../hylic" }
+hylic = { path = "../hylic", version = "0.1.0" }
 either = "1.15.0"
 
 [dev-dependencies]

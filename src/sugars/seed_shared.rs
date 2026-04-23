@@ -2,6 +2,8 @@
 //! so the same method names (no `_local` suffix) work for both
 //! domains via the sibling `SeedSugarsLocal` trait.
 
+#![allow(missing_docs)] // module-level: public items are per-domain/per-policy mirrors of documented primitives
+
 use std::sync::Arc;
 use hylic::domain::Shared;
 use hylic::domain::shared::fold::Fold;

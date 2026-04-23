@@ -38,11 +38,18 @@ use hylic::ops::{Lift, LiftedNode, SeedLift, TreeOps};
 /// execution. Seed-agnostic.
 // ANCHOR: treeish_source_trait
 pub trait TreeishSource {
+    /// Domain in which the pipeline's slots are stored.
     type Domain: Domain<Self::N>;
+    /// Node type flowing through the fold and graph.
     type N: Clone + 'static;
+    /// Per-node heap type used by the fold.
     type H: Clone + 'static;
+    /// Result type returned at each fold node.
     type R: Clone + 'static;
 
+    /// Yield the pipeline's `(treeish, fold)` pair to the given
+    /// continuation. The yielded values may be borrowed only for the
+    /// duration of the continuation.
     fn with_treeish<T>(
         &self,
         cont: impl FnOnce(
@@ -59,8 +66,12 @@ pub trait TreeishSource {
 /// compose SeedLift for Entry dispatch.
 // ANCHOR: seed_source_trait
 pub trait SeedSource: TreeishSource {
+    /// Reference type resolved into `Self::N` by `grow`.
     type Seed: Clone + 'static;
 
+    /// Yield the pipeline's `(grow, treeish, fold)` triple to the
+    /// given continuation. The yielded values live only for the
+    /// duration of the call.
     fn with_seeded<T>(
         &self,
         cont: impl FnOnce(
@@ -73,13 +84,20 @@ pub trait SeedSource: TreeishSource {
 
 // ── PipelineSourceOnce ────────────────────────────────
 
-/// By-value analogue (OwnedPipeline). Seedless.
+/// By-value analogue of [`TreeishSource`], implemented by one-shot
+/// pipelines such as `OwnedPipeline`. Seedless.
 pub trait PipelineSourceOnce {
+    /// Domain in which the pipeline's slots are stored.
     type Domain: Domain<Self::N>;
+    /// Node type flowing through the fold and graph.
     type N:    'static;
+    /// Per-node heap type used by the fold.
     type H:    'static;
+    /// Result type returned at each fold node.
     type R:    'static;
 
+    /// Consume the pipeline and yield its `(treeish, fold)` pair to
+    /// the given continuation.
     fn with_constructed_once<T>(
         self,
         cont: impl FnOnce(
@@ -96,6 +114,8 @@ pub trait PipelineSourceOnce {
 /// Run-from-root execution on any `TreeishSource`.
 // ANCHOR: pipeline_exec_trait
 pub trait PipelineExec: TreeishSource {
+    /// Execute the pipeline from the given `root` node under the
+    /// supplied executor and return the root's fold result.
     fn run_from_node<E>(
         &self,
         exec: &E,
@@ -184,7 +204,11 @@ impl<P: SeedSource> PipelineExecSeed for P {}
 
 // ── PipelineExecOnce ──────────────────────────────────
 
+/// By-value execution for `PipelineSourceOnce` sources (notably
+/// `OwnedPipeline`). Consumes `self`.
 pub trait PipelineExecOnce: PipelineSourceOnce + Sized {
+    /// Consume the pipeline, apply it at `root` under the given
+    /// executor, and return the root's fold result.
     fn run_from_node_once<E>(
         self,
         exec: &E,
