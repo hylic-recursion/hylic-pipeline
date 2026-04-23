@@ -1,0 +1,11 @@
+[package]
+name = "hylic-pipeline"
+version = "0.1.0"
+edition = "2021"
+description = "Typestate pipelines and sugar traits over hylic lifts"
+
+[dependencies]
+hylic = { path = "../hylic" }
+either = "1.15.0"
+
+[dev-dependencies]
