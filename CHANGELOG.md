@@ -18,15 +18,15 @@ pipeline-specific milestones of that evolution.
   no longer carries the typestate builder.
 - **Stage 1 and Stage 2 typestates.** `SeedPipeline`,
   `TreeishPipeline`, `LiftedPipeline`, `OwnedPipeline` — each
-  parametric over `D: Domain<N>` (`ab4c6ff` in the hylic
-  history).
+  parametric over `D: Domain<N>` (core-side `ab4c6ff`).
 - **`TreeishSource` / `SeedSource` / `PipelineExec` /
   `PipelineExecSeed` traits** consolidating how pipelines expose
-  themselves to executors (`7d42bb5`).
+  themselves to executors (core-side `7d42bb5`).
 - **Blanket sugar traits per stage × domain**: six files under
   `sugars/` define the `.wrap_init(...)`, `.zipmap(...)`,
   `.filter_edges(...)`, `.then_lift(...)` surface once each for
-  Shared and Local (`2639c5d`, `80f918f`, `b8a4397`).
+  Shared and Local (core-side `2639c5d`, `80f918f`; pipeline-side
+  `b8a4397`).
 - **`LiftedPipeline` primitives consolidated** into
   `lifted/primitives.rs` — `then_lift` and `before_lift` are the
   two composition points; every sugar delegates to one of them
@@ -36,6 +36,9 @@ pipeline-specific milestones of that evolution.
 
 - **`_local`-suffixed inherent methods dropped** in favour of
   `*Local` blanket traits (`b8a4397`).
+
+  Note: commits tagged `core-side` refer to the `hylic` repository;
+  untagged shas are in this (`hylic-pipeline`) repository.
 - **Prelude streamlined**: removes the now-obsolete `local` /
   `owned` submodules (`423f497`).
 - **`hylic::exec` path adopted** after the core's `cata/ → exec/`

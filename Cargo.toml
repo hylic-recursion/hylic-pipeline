@@ -11,6 +11,7 @@ homepage = "https://hylic.balcony.codes"
 documentation = "https://hylic.balcony.codes/pipeline/overview.html"
 keywords = ["recursion-schemes", "pipeline", "typestate", "tree", "fold"]
 categories = ["data-structures", "algorithms", "rust-patterns"]
+exclude = ["KB/**", "__Scratch__", "notes.txt", "doc/**", ".plans/**"]
 
 [package.metadata.docs.rs]
 all-features = true
