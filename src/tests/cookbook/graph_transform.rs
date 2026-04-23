@@ -5,7 +5,7 @@
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use crate::{TreeishPipeline, PipelineExec, LiftedSugarsShared};
+use crate::{TreeishPipeline, PipelineExec, LiftedSugarsShared, TreeishSugarsShared};
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
 use hylic::graph::treeish;
@@ -75,7 +75,6 @@ fn contramap_node_at_stage2_wraps_in_newtype() {
 
     let root = Tagged(ModuleId("app".into()));
     let r: u32 = base_pipeline()
-        .lift()
         .map_node_bi(
             |m: &ModuleId| Tagged(m.clone()),
             |t: &Tagged| t.0.clone(),

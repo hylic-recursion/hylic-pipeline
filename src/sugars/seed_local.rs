@@ -1,17 +1,40 @@
-//! Stage-1 Local sugars on SeedPipeline. Mirror of Shared with
-//! Rc-based closure storage and non-Send bounds.
+//! Stage-1 blanket sugars for `SeedPipeline<Local, …>`. Mirror of
+//! `seed_shared.rs` with Rc storage and no Send+Sync bounds.
 
 use std::rc::Rc;
 use hylic::domain::Local;
 use hylic::domain::local::Fold;
 use hylic::domain::local::edgy::Edgy;
-use super::SeedPipeline;
+use crate::seed::SeedPipeline;
 
-impl<N, Seed, H, R> SeedPipeline<Local, N, Seed, H, R>
+pub trait SeedSugarsLocal<N, Seed, H, R>: Sized
 where N: Clone + 'static, Seed: Clone + 'static,
       H: Clone + 'static, R: Clone + 'static,
 {
-    pub fn filter_seeds_local<P>(self, pred: P) -> SeedPipeline<Local, N, Seed, H, R>
+    fn filter_seeds<P>(self, pred: P) -> SeedPipeline<Local, N, Seed, H, R>
+    where P: Fn(&Seed) -> bool + 'static;
+
+    fn wrap_grow<W>(self, wrapper: W) -> SeedPipeline<Local, N, Seed, H, R>
+    where W: Fn(&Seed, &dyn Fn(&Seed) -> N) -> N + 'static;
+
+    fn map_node_bi<N2, Co, Contra>(self, co: Co, contra: Contra)
+        -> SeedPipeline<Local, N2, Seed, H, R>
+    where N2: Clone + 'static,
+          Co:     Fn(&N) -> N2 + 'static,
+          Contra: Fn(&N2) -> N + 'static;
+
+    fn map_seed_bi<Seed2, ToNew, FromNew>(self, to_new: ToNew, from_new: FromNew)
+        -> SeedPipeline<Local, N, Seed2, H, R>
+    where Seed2: Clone + 'static,
+          ToNew:   Fn(&Seed) -> Seed2 + 'static,
+          FromNew: Fn(&Seed2) -> Seed + 'static;
+}
+
+impl<N, Seed, H, R> SeedSugarsLocal<N, Seed, H, R> for SeedPipeline<Local, N, Seed, H, R>
+where N: Clone + 'static, Seed: Clone + 'static,
+      H: Clone + 'static, R: Clone + 'static,
+{
+    fn filter_seeds<P>(self, pred: P) -> SeedPipeline<Local, N, Seed, H, R>
     where P: Fn(&Seed) -> bool + 'static,
     {
         let pred = Rc::new(pred);
@@ -22,7 +45,7 @@ where N: Clone + 'static, Seed: Clone + 'static,
         )
     }
 
-    pub fn wrap_grow_local<W>(self, wrapper: W) -> SeedPipeline<Local, N, Seed, H, R>
+    fn wrap_grow<W>(self, wrapper: W) -> SeedPipeline<Local, N, Seed, H, R>
     where W: Fn(&Seed, &dyn Fn(&Seed) -> N) -> N + 'static,
     {
         let wrapper = Rc::new(wrapper);
@@ -38,9 +61,8 @@ where N: Clone + 'static, Seed: Clone + 'static,
         )
     }
 
-    pub fn map_node_bi_local<N2, Co, Contra>(
-        self, co: Co, contra: Contra,
-    ) -> SeedPipeline<Local, N2, Seed, H, R>
+    fn map_node_bi<N2, Co, Contra>(self, co: Co, contra: Contra)
+        -> SeedPipeline<Local, N2, Seed, H, R>
     where N2: Clone + 'static,
           Co:     Fn(&N) -> N2 + 'static,
           Contra: Fn(&N2) -> N + 'static,
@@ -67,9 +89,8 @@ where N: Clone + 'static, Seed: Clone + 'static,
         )
     }
 
-    pub fn map_seed_bi_local<Seed2, ToNew, FromNew>(
-        self, to_new: ToNew, from_new: FromNew,
-    ) -> SeedPipeline<Local, N, Seed2, H, R>
+    fn map_seed_bi<Seed2, ToNew, FromNew>(self, to_new: ToNew, from_new: FromNew)
+        -> SeedPipeline<Local, N, Seed2, H, R>
     where Seed2: Clone + 'static,
           ToNew:   Fn(&Seed) -> Seed2 + 'static,
           FromNew: Fn(&Seed2) -> Seed + 'static,

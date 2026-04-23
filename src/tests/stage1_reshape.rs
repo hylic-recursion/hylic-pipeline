@@ -1,7 +1,7 @@
 //! Stage-1 reshape primitive + the four coalgebra sugars.
 
 use std::sync::Arc;
-use crate::{SeedPipeline, PipelineExecSeed};
+use crate::{SeedPipeline, PipelineExecSeed, SeedSugarsShared};
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
 use hylic::graph::edgy_visit;

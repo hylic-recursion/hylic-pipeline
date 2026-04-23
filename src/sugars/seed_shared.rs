@@ -1,22 +1,41 @@
-//! Stage-1 sugars — Shared-domain only for now (Phase 5/5).
-//! Per-domain variants can be added following the same pattern.
-//!
-//! - filter_seeds(p)            — narrows the seed set (N/Seed/H/R preserved)
-//! - wrap_grow(w)                — wraps grow closure (N/Seed/H/R preserved)
-//! - map_node_bi(co, contra)  — changes N to N2 via bijection
-//! - map_seed_bi(to, from)          — changes Seed to Seed2 via bijection
+//! Stage-1 blanket sugars for `SeedPipeline<Shared, …>`. Trait-based
+//! so the same method names (no `_local` suffix) work for both
+//! domains via the sibling `SeedSugarsLocal` trait.
 
 use std::sync::Arc;
 use hylic::domain::Shared;
 use hylic::domain::shared::fold::Fold;
 use hylic::graph::Edgy;
-use super::SeedPipeline;
+use crate::seed::SeedPipeline;
 
-impl<N, Seed, H, R> SeedPipeline<Shared, N, Seed, H, R>
+pub trait SeedSugarsShared<N, Seed, H, R>: Sized
 where N: Clone + 'static, Seed: Clone + 'static,
       H: Clone + 'static, R: Clone + 'static,
 {
-    pub fn filter_seeds<P>(self, pred: P) -> SeedPipeline<Shared, N, Seed, H, R>
+    fn filter_seeds<P>(self, pred: P) -> SeedPipeline<Shared, N, Seed, H, R>
+    where P: Fn(&Seed) -> bool + Send + Sync + 'static;
+
+    fn wrap_grow<W>(self, wrapper: W) -> SeedPipeline<Shared, N, Seed, H, R>
+    where W: Fn(&Seed, &dyn Fn(&Seed) -> N) -> N + Send + Sync + 'static;
+
+    fn map_node_bi<N2, Co, Contra>(self, co: Co, contra: Contra)
+        -> SeedPipeline<Shared, N2, Seed, H, R>
+    where N2: Clone + 'static,
+          Co:     Fn(&N) -> N2 + Send + Sync + 'static,
+          Contra: Fn(&N2) -> N + Send + Sync + 'static;
+
+    fn map_seed_bi<Seed2, ToNew, FromNew>(self, to_new: ToNew, from_new: FromNew)
+        -> SeedPipeline<Shared, N, Seed2, H, R>
+    where Seed2: Clone + 'static,
+          ToNew:   Fn(&Seed) -> Seed2 + Send + Sync + 'static,
+          FromNew: Fn(&Seed2) -> Seed + Send + Sync + 'static;
+}
+
+impl<N, Seed, H, R> SeedSugarsShared<N, Seed, H, R> for SeedPipeline<Shared, N, Seed, H, R>
+where N: Clone + 'static, Seed: Clone + 'static,
+      H: Clone + 'static, R: Clone + 'static,
+{
+    fn filter_seeds<P>(self, pred: P) -> SeedPipeline<Shared, N, Seed, H, R>
     where P: Fn(&Seed) -> bool + Send + Sync + 'static,
     {
         let pred = Arc::new(pred);
@@ -27,7 +46,7 @@ where N: Clone + 'static, Seed: Clone + 'static,
         )
     }
 
-    pub fn wrap_grow<W>(self, wrapper: W) -> SeedPipeline<Shared, N, Seed, H, R>
+    fn wrap_grow<W>(self, wrapper: W) -> SeedPipeline<Shared, N, Seed, H, R>
     where W: Fn(&Seed, &dyn Fn(&Seed) -> N) -> N + Send + Sync + 'static,
     {
         let wrapper = Arc::new(wrapper);
@@ -44,11 +63,8 @@ where N: Clone + 'static, Seed: Clone + 'static,
         )
     }
 
-    pub fn map_node_bi<N2, Co, Contra>(
-        self,
-        co: Co,
-        contra: Contra,
-    ) -> SeedPipeline<Shared, N2, Seed, H, R>
+    fn map_node_bi<N2, Co, Contra>(self, co: Co, contra: Contra)
+        -> SeedPipeline<Shared, N2, Seed, H, R>
     where N2: Clone + 'static,
           Co:     Fn(&N) -> N2 + Send + Sync + 'static,
           Contra: Fn(&N2) -> N + Send + Sync + 'static,
@@ -76,11 +92,8 @@ where N: Clone + 'static, Seed: Clone + 'static,
         )
     }
 
-    pub fn map_seed_bi<Seed2, ToNew, FromNew>(
-        self,
-        to_new: ToNew,
-        from_new: FromNew,
-    ) -> SeedPipeline<Shared, N, Seed2, H, R>
+    fn map_seed_bi<Seed2, ToNew, FromNew>(self, to_new: ToNew, from_new: FromNew)
+        -> SeedPipeline<Shared, N, Seed2, H, R>
     where Seed2: Clone + 'static,
           ToNew:   Fn(&Seed) -> Seed2 + Send + Sync + 'static,
           FromNew: Fn(&Seed2) -> Seed + Send + Sync + 'static,

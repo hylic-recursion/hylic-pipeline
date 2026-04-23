@@ -1,7 +1,7 @@
 //! The .lift() transition from Stage 1 to Stage 2.
 
 use std::sync::Arc;
-use crate::{SeedPipeline, LiftedPipeline, PipelineExecSeed, LiftedSugarsShared};
+use crate::{SeedPipeline, LiftedPipeline, PipelineExecSeed, LiftedSugarsShared, SeedSugarsShared};
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
 use hylic::graph::edgy_visit;

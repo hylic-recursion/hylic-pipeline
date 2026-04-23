@@ -1,19 +1,28 @@
-//! TreeishPipeline sugars — Shared-domain only for now (Phase 5/5).
+//! Stage-1 blanket sugar for `TreeishPipeline<Shared, …>`.
+//! Just `map_node_bi` — TreeishPipeline has no grow slot, so
+//! filter_seeds / wrap_grow / map_seed_bi don't apply.
 
 use std::sync::Arc;
 use hylic::domain::Shared;
 use hylic::domain::shared::fold::Fold;
 use hylic::graph::Treeish;
-use super::TreeishPipeline;
+use crate::treeish::TreeishPipeline;
 
-impl<N, H, R> TreeishPipeline<Shared, N, H, R>
+pub trait TreeishSugarsShared<N, H, R>: Sized
 where N: Clone + 'static, H: Clone + 'static, R: Clone + 'static,
 {
-    pub fn map_node_bi<N2, Co, Contra>(
-        self,
-        co: Co,
-        contra: Contra,
-    ) -> TreeishPipeline<Shared, N2, H, R>
+    fn map_node_bi<N2, Co, Contra>(self, co: Co, contra: Contra)
+        -> TreeishPipeline<Shared, N2, H, R>
+    where N2: Clone + 'static,
+          Co:     Fn(&N) -> N2 + Send + Sync + 'static,
+          Contra: Fn(&N2) -> N + Send + Sync + 'static;
+}
+
+impl<N, H, R> TreeishSugarsShared<N, H, R> for TreeishPipeline<Shared, N, H, R>
+where N: Clone + 'static, H: Clone + 'static, R: Clone + 'static,
+{
+    fn map_node_bi<N2, Co, Contra>(self, co: Co, contra: Contra)
+        -> TreeishPipeline<Shared, N2, H, R>
     where N2: Clone + 'static,
           Co:     Fn(&N) -> N2 + Send + Sync + 'static,
           Contra: Fn(&N2) -> N + Send + Sync + 'static,

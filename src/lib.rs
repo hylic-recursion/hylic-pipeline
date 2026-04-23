@@ -7,7 +7,14 @@
 //!   - One out-of-band one-shot pipeline: [`OwnedPipeline`]
 //!   - Source interface traits: [`TreeishSource`], [`SeedSource`]
 //!   - Blanket execution traits: [`PipelineExec`], [`PipelineExecSeed`], [`PipelineExecOnce`]
-//!   - Blanket sugar traits: [`LiftedSugarsShared`], [`LiftedSugarsLocal`]
+//!   - Blanket sugar traits:
+//!     - Stage 1 (SeedPipeline): [`SeedSugarsShared`], [`SeedSugarsLocal`]
+//!       (`filter_seeds`, `wrap_grow`, `map_node_bi`, `map_seed_bi`).
+//!     - Stage 1 (TreeishPipeline): [`TreeishSugarsShared`], [`TreeishSugarsLocal`]
+//!       (just `map_node_bi`).
+//!     - Stage 2: [`LiftedSugarsShared`], [`LiftedSugarsLocal`].
+//!       On `LiftedPipeline` use `.then_lift(Shared::map_n_bi_lift(co, contra))`
+//!       for N-change (no auto-lift method to avoid overlap with Stage-1).
 //!
 //! Users who need only the lift-primitive surface (`Shared::wrap_init_lift`,
 //! `Shared::n_lift`, `LiftBare::apply_bare`, …) can depend on `hylic`
@@ -34,5 +41,9 @@ pub use seed::SeedPipeline;
 pub use treeish::TreeishPipeline;
 pub use lifted::LiftedPipeline;
 pub use owned::OwnedPipeline;
-pub use sugars::{LiftedSugarsShared, LiftedSugarsLocal};
+pub use sugars::{
+    SeedSugarsShared, SeedSugarsLocal,
+    TreeishSugarsShared, TreeishSugarsLocal,
+    LiftedSugarsShared, LiftedSugarsLocal,
+};
 pub use hylic::ops::LiftedNode;

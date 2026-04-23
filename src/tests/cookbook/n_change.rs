@@ -5,7 +5,7 @@
 //! N-wrap.
 
 use std::sync::Arc;
-use crate::{TreeishPipeline, PipelineExec, LiftedSugarsShared};
+use crate::{TreeishPipeline, PipelineExec, LiftedSugarsShared, TreeishSugarsShared};
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
 use hylic::graph::{treeish, treeish_visit, Treeish};
@@ -35,7 +35,6 @@ fn contramap_node_arc_wraps_non_clone_payload() {
     );
 
     let r: u64 = TreeishPipeline::new(base_treeish, &base_fold)
-        .lift()
         .map_node_bi(
             |n: &Node| Arc::new(n.clone()),
             |a: &Arc<Node>| (**a).clone(),

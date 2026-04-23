@@ -78,15 +78,10 @@ where
           KeyFn: Fn(&N) -> K + 'static,
     { self.then_lift(Local::memoize_by_lift::<N, H, R, K, _>(key_fn)) }
 
-    // ── N-change ─────────────────────────────────────────────
-
-    fn map_node_bi<NewN, Co, Contra>(self, co: Co, contra: Contra)
-        -> Self::With<ShapeLift<Local, N, H, R, NewN, H, R>>
-    where NewN: Clone + 'static,
-          Local: Domain<NewN>,
-          Co:     Fn(&N) -> NewN + Clone + 'static,
-          Contra: Fn(&NewN) -> N + Clone + 'static,
-    { self.then_lift(Local::map_n_bi_lift::<N, H, R, NewN, _, _>(co, contra)) }
+    // N-change is provided by the Stage-1 sugar trait
+    // (`SeedSugarsLocal::map_node_bi` / `TreeishSugarsLocal::map_node_bi`)
+    // since it's a reshape primitive. On `LiftedPipeline`, use
+    // `.then_lift(Local::map_n_bi_lift(co, contra))` explicitly.
 
     // ── explainer ────────────────────────────────────────────
 

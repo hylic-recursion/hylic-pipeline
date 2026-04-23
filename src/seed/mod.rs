@@ -5,8 +5,6 @@
 use hylic::domain::Domain;
 
 pub mod reshape;
-pub mod transforms_shared;
-pub mod transforms_local;
 pub mod source_impl;
 
 pub struct SeedPipeline<D, N, Seed, H, R>

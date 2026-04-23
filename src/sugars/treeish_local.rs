@@ -1,17 +1,27 @@
-//! Stage-1 Local sugar on TreeishPipeline — map_node_bi mirror.
+//! Stage-1 blanket sugar for `TreeishPipeline<Local, …>`. Mirror of
+//! `treeish_shared.rs` with Rc storage and no Send+Sync bounds.
 
 use std::rc::Rc;
 use hylic::domain::Local;
 use hylic::domain::local::Fold;
 use hylic::domain::local::edgy::Edgy;
-use super::TreeishPipeline;
+use crate::treeish::TreeishPipeline;
 
-impl<N, H, R> TreeishPipeline<Local, N, H, R>
+pub trait TreeishSugarsLocal<N, H, R>: Sized
 where N: Clone + 'static, H: Clone + 'static, R: Clone + 'static,
 {
-    pub fn map_node_bi_local<N2, Co, Contra>(
-        self, co: Co, contra: Contra,
-    ) -> TreeishPipeline<Local, N2, H, R>
+    fn map_node_bi<N2, Co, Contra>(self, co: Co, contra: Contra)
+        -> TreeishPipeline<Local, N2, H, R>
+    where N2: Clone + 'static,
+          Co:     Fn(&N) -> N2 + 'static,
+          Contra: Fn(&N2) -> N + 'static;
+}
+
+impl<N, H, R> TreeishSugarsLocal<N, H, R> for TreeishPipeline<Local, N, H, R>
+where N: Clone + 'static, H: Clone + 'static, R: Clone + 'static,
+{
+    fn map_node_bi<N2, Co, Contra>(self, co: Co, contra: Contra)
+        -> TreeishPipeline<Local, N2, H, R>
     where N2: Clone + 'static,
           Co:     Fn(&N) -> N2 + 'static,
           Contra: Fn(&N2) -> N + 'static,
@@ -20,7 +30,7 @@ where N: Clone + 'static, H: Clone + 'static, R: Clone + 'static,
         let contra = Rc::new(contra);
         let co_for_treeish = co.clone();
         let contra_for_treeish = contra.clone();
-        let contra_for_fold = contra;
+        let contra_for_fold = contra.clone();
         self.reshape(
             move |treeish: Edgy<N, N>| -> Edgy<N2, N2> {
                 treeish.contramap(move |n2: &N2| contra_for_treeish(n2))

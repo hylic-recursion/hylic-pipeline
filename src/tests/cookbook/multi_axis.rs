@@ -2,7 +2,7 @@
 //! resolver-style flow.
 
 use std::sync::Arc;
-use crate::{SeedPipeline, PipelineExecSeed, LiftedSugarsShared};
+use crate::{SeedPipeline, PipelineExecSeed, LiftedSugarsShared, SeedSugarsShared};
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
 use hylic::domain::Shared;

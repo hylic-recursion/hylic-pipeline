@@ -19,5 +19,7 @@ pub use crate::{
     TreeishSource, SeedSource,
     PipelineExec, PipelineExecSeed, PipelineExecOnce,
     PipelineSourceOnce,
+    SeedSugarsShared, SeedSugarsLocal,
+    TreeishSugarsShared, TreeishSugarsLocal,
     LiftedSugarsShared, LiftedSugarsLocal,
 };
