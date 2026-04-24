@@ -162,13 +162,10 @@ pub trait PipelineExecSeed: SeedSource {
         self.with_seeded(|grow, treeish, fold| {
             let grow: Arc<dyn Fn(&Self::Seed) -> Self::N + Send + Sync> = grow;
             let sl: SeedLift<Self::N, Self::Seed, Self::H> =
-                SeedLift::from_arc_grow(grow.clone(), entry_seeds, move || entry_heap.clone());
-            sl.apply::<Self::Seed, _>(
-                grow, treeish, fold,
-                |_unreachable_grow, lifted_treeish, lifted_fold| {
-                    exec.run(&lifted_fold, &lifted_treeish, &LiftedNode::Entry)
-                },
-            )
+                SeedLift::from_arc_grow(grow, entry_seeds, move || entry_heap.clone());
+            sl.apply(treeish, fold, |lifted_treeish, lifted_fold| {
+                exec.run(&lifted_fold, &lifted_treeish, &LiftedNode::Entry)
+            })
         })
     }
 

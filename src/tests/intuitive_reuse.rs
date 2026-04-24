@@ -58,26 +58,22 @@ fn two_user_lifts_in_series() {
     where N: Clone + 'static, H: Clone + 'static, R: Clone + Into<u64> + From<u64> + 'static,
     {
         type N2 = N; type MapH = H; type MapR = R;
-        fn apply<Seed, T>(
+        fn apply<T>(
             &self,
-            grow:    <Shared as Domain<N>>::Grow<Seed, N>,
             treeish: <Shared as Domain<N>>::Graph<N>,
             fold_in: <Shared as Domain<N>>::Fold<H, R>,
             cont: impl FnOnce(
-                <Shared as Domain<N>>::Grow<Seed, N>,
                 <Shared as Domain<N>>::Graph<N>,
                 <Shared as Domain<N>>::Fold<H, R>,
             ) -> T,
-        ) -> T
-        where Seed: Clone + 'static,
-        {
+        ) -> T {
             let addend = self.0;
             let wrapped = fold_in.wrap_finalize(move |h, orig| {
                 let r: R = orig(h);
                 let as_u: u64 = r.into();
                 R::from(as_u + addend)
             });
-            cont(grow, treeish, wrapped)
+            cont(treeish, wrapped)
         }
     }
 
@@ -88,24 +84,20 @@ fn two_user_lifts_in_series() {
     where N: Clone + 'static, H: Clone + 'static, R: Clone + Into<u64> + From<u64> + 'static,
     {
         type N2 = N; type MapH = H; type MapR = R;
-        fn apply<Seed, T>(
+        fn apply<T>(
             &self,
-            grow:    <Shared as Domain<N>>::Grow<Seed, N>,
             treeish: <Shared as Domain<N>>::Graph<N>,
             fold_in: <Shared as Domain<N>>::Fold<H, R>,
             cont: impl FnOnce(
-                <Shared as Domain<N>>::Grow<Seed, N>,
                 <Shared as Domain<N>>::Graph<N>,
                 <Shared as Domain<N>>::Fold<H, R>,
             ) -> T,
-        ) -> T
-        where Seed: Clone + 'static,
-        {
+        ) -> T {
             let wrapped = fold_in.wrap_finalize(move |h, orig| {
                 let r: R = orig(h);
                 R::from(r.into() * 2)
             });
-            cont(grow, treeish, wrapped)
+            cont(treeish, wrapped)
         }
     }
 

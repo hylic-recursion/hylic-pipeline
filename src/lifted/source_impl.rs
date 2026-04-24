@@ -1,12 +1,16 @@
 //! LiftedPipeline source impls.
 //!
-//! `TreeishSource` impl (always, when Base is TreeishSource): Seed-
-//! agnostic. Synthesises a panic-grow internally to satisfy
-//! `Lift::apply`'s signature; the panic-grow is never invoked because
-//! no Lift impl calls grow at runtime — they compose it only.
+//! `TreeishSource` impl (always, when Base is TreeishSource): the
+//! lift chain transforms `(treeish, fold)` in two slots and the
+//! continuation receives the result.
 //!
-//! `SeedSource` impl (when Base is SeedSource): passes the base's
-//! grow through the lift chain, preserving Seed-dispatch capability.
+//! `SeedSource` impl (when Base is SeedSource): the base's grow is
+//! threaded to the continuation *unchanged*. Because the 2-slot
+//! `Lift` trait cannot transform grow, the SeedSource impl is
+//! constrained to lift chains that preserve N (`L::N2 = Base::N`).
+//! Pipelines that need Stage-2 N-change must reshape at Stage 1
+//! via `map_node_bi` / `reshape`, or compose `SeedLift` explicitly
+//! (which retires the Seed axis) and run through `run_from_node`.
 
 use hylic::domain::Domain;
 use hylic::ops::Lift;
@@ -37,18 +41,8 @@ where Base: TreeishSource,
         ) -> T,
     ) -> T {
         self.base.with_treeish(|treeish, fold| {
-            // Synthesise a panic-grow over Seed = (). No Lift impl
-            // invokes grow at runtime (N-change lifts compose; they
-            // don't call). The panic closure survives through the
-            // chain untouched.
-            type SeedUnit = ();
-            let panic_grow = <<Base as TreeishSource>::Domain as Domain<<Base as TreeishSource>::N>>::make_grow::<SeedUnit, <Base as TreeishSource>::N>(
-                |_: &SeedUnit| unreachable!(
-                    "panic-grow synthesised for TreeishSource lift-chain application; \
-                     no Lift impl should invoke grow at runtime"),
-            );
-            self.pre_lift.apply::<SeedUnit, _>(panic_grow, treeish, fold,
-                |_grow_out, treeish_out, fold_out| cont(treeish_out, fold_out),
+            self.pre_lift.apply(treeish, fold,
+                |treeish_out, fold_out| cont(treeish_out, fold_out),
             )
         })
     }
@@ -56,12 +50,14 @@ where Base: TreeishSource,
 
 impl<Base, L> SeedSource for LiftedPipeline<Base, L>
 where Base: SeedSource,
-      <Base as TreeishSource>::Domain: Domain<L::N2>,
+      // The lift chain must preserve N so the base's grow type
+      // stays compatible with the yielded triple. Stage-2
+      // N-change lifts cannot feed a SeedSource path.
       L: Lift<<Base as TreeishSource>::Domain,
               <Base as TreeishSource>::N,
               <Base as TreeishSource>::H,
-              <Base as TreeishSource>::R>,
-      L::N2:   Clone + 'static,
+              <Base as TreeishSource>::R,
+              N2 = <Base as TreeishSource>::N>,
       L::MapH: Clone + 'static,
       L::MapR: Clone + 'static,
 {
@@ -76,7 +72,9 @@ where Base: SeedSource,
         ) -> T,
     ) -> T {
         self.base.with_seeded(|grow, treeish, fold| {
-            self.pre_lift.apply::<<Base as SeedSource>::Seed, _>(grow, treeish, fold, cont)
+            self.pre_lift.apply(treeish, fold, |treeish_out, fold_out| {
+                cont(grow, treeish_out, fold_out)
+            })
         })
     }
 }
