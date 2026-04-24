@@ -1,12 +1,13 @@
 //! Cookbook: explainer_lift / explainer_describe_lift.
 
 use std::sync::{Arc, Mutex};
-use crate::{SeedPipeline, PipelineExecSeed, LiftedSugarsShared};
+use crate::SeedPipeline;
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
 use hylic::domain::Shared;
 use hylic::graph::edgy_visit;
-use hylic::prelude::{ExplainerHeap, ExplainerResult, trace_fold_compact};
+use hylic::prelude::{ExplainerResult, trace_fold_compact};
+use hylic::ops::LiftedNode;
 
 fn basic() -> SeedPipeline<Shared, u64, u64, u64, u64> {
     let ch: Arc<Vec<Vec<u64>>> = Arc::new(vec![vec![1, 2], vec![3], vec![], vec![]]);
@@ -19,13 +20,13 @@ fn basic() -> SeedPipeline<Shared, u64, u64, u64, u64> {
 
 #[test]
 fn explainer_lift_records_full_trace() {
-    let r: ExplainerResult<u64, u64, u64> = basic()
+    let r: ExplainerResult<LiftedNode<u64>, u64, u64> = basic()
         .lift()
         .explain()
         .run_from_slice(
             &dom::exec(funnel::Spec::default(4)),
             &[0u64],
-            ExplainerHeap::new(0u64, 0u64),
+            0u64,
         );
     assert_eq!(r.orig_result, 6);
     assert!(!r.heap.transitions.is_empty(), "trace recorded");
@@ -38,17 +39,13 @@ fn explainer_describe_streams_per_node() {
 
     let r: u64 = basic()
         .lift()
-        .then_lift(Shared::explainer_describe_lift::<u64, u64, u64, _, _>(
-            trace_fold_compact::<u64, u64, u64>,
+        .explain_describe(
+            trace_fold_compact::<LiftedNode<u64>, u64, u64>,
             move |s: &str| {
                 captured_for_emit.lock().unwrap().push(s.to_string());
             },
-        ))
-        .run_from_slice(
-            &dom::exec(funnel::Spec::default(4)),
-            &[0u64],
-            ExplainerHeap::new(0u64, 0u64),
-        );
+        )
+        .run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
     // R is transparent.
     assert_eq!(r, 6);
     assert!(!captured.lock().unwrap().is_empty());

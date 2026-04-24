@@ -4,7 +4,7 @@
 //! against a realistic "Task with cost_ms" scenario.
 
 use std::sync::Arc;
-use crate::{SeedPipeline, PipelineExecSeed, LiftedSugarsShared};
+use crate::{SeedPipeline, LiftedSugarsShared};
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
 use hylic::graph::edgy_visit;

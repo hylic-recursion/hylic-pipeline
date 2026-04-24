@@ -1,36 +1,23 @@
 //! Pipeline source traits and execution extensions.
 //!
-//! The source hierarchy has two axes: **by-reference vs by-value**
-//! (consume semantics) and **seedless vs seeded** (Entry-dispatch
-//! capability).
+//! Under Option B (post-`project-entry-refactor`), the seed path is
+//! a distinct type (`LiftedSeedPipeline`) with inherent methods, not
+//! a trait-level concern. `source.rs` carries only the seedless
+//! abstractions:
 //!
-//!                  seedless              seeded
-//!                  ─────────             ─────────────────
-//!   by-reference   TreeishSource   ◀─── SeedSource
-//!                                       (extends TreeishSource)
-//!   by-value       PipelineSourceOnce
+//!   - `TreeishSource`              — yield `(treeish, fold)` by reference
+//!   - `PipelineSourceOnce`         — yield them by value (consuming)
+//!   - `PipelineExec: TreeishSource` — `run_from_node`
+//!   - `PipelineExecOnce: PipelineSourceOnce` — `run_from_node_once`
 //!
-//! `TreeishSource` is the common supertrait for by-reference
-//! pipelines: yields `(treeish, fold)` in the domain's native
-//! storage. No Seed semantics.
-//!
-//! `SeedSource: TreeishSource` extends with a `Seed` type and a
-//! `with_seeded` yield that provides `(grow, treeish, fold)` — the
-//! triple SeedLift needs to build Entry/Seed/Node dispatch.
-//!
-//! Execution:
-//!   - `PipelineExec: TreeishSource`    — `run_from_node` (any pipeline)
-//!   - `PipelineExecSeed: SeedSource`   — `run` + `run_from_slice` (SeedLift-composing)
-//!   - `PipelineExecOnce: PipelineSourceOnce` — by-value analogue
-//!
-//! Pipelines that don't carry Seed semantics (TreeishPipeline) do
-//! NOT inherit `.run(...)` — that's a compile-time guarantee.
+//! `SeedSource` / `PipelineExecSeed` / `with_seeded` have been
+//! removed: `SeedPipeline::lift()` transitions directly to
+//! `LiftedSeedPipeline` (see `lifted_seed/`), whose `.run` captures
+//! seeds and assembles `SeedLift` as the first lift in the chain.
 
-use std::sync::Arc;
 use hylic::exec::Executor;
-use hylic::domain::{Domain, Shared};
-use hylic::graph::{self, Edgy, Treeish};
-use hylic::ops::{Lift, LiftedNode, SeedLift, TreeOps};
+use hylic::domain::Domain;
+use hylic::ops::TreeOps;
 
 // ── TreeishSource ─────────────────────────────────────
 
@@ -53,29 +40,6 @@ pub trait TreeishSource {
     fn with_treeish<T>(
         &self,
         cont: impl FnOnce(
-            <Self::Domain as Domain<Self::N>>::Graph<Self::N>,
-            <Self::Domain as Domain<Self::N>>::Fold<Self::H, Self::R>,
-        ) -> T,
-    ) -> T;
-}
-
-// ── SeedSource ────────────────────────────────────────
-
-/// Extends `TreeishSource` with a `Seed` type and a 3-slot yield
-/// `(grow, treeish, fold)`. Implemented by pipelines that can
-/// compose SeedLift for Entry dispatch.
-// ANCHOR: seed_source_trait
-pub trait SeedSource: TreeishSource {
-    /// Reference type resolved into `Self::N` by `grow`.
-    type Seed: Clone + 'static;
-
-    /// Yield the pipeline's `(grow, treeish, fold)` triple to the
-    /// given continuation. The yielded values live only for the
-    /// duration of the call.
-    fn with_seeded<T>(
-        &self,
-        cont: impl FnOnce(
-            <Self::Domain as Domain<Self::N>>::Grow<Self::Seed, Self::N>,
             <Self::Domain as Domain<Self::N>>::Graph<Self::N>,
             <Self::Domain as Domain<Self::N>>::Fold<Self::H, Self::R>,
         ) -> T,
@@ -107,7 +71,7 @@ pub trait PipelineSourceOnce {
     ) -> T;
 }
 
-// ANCHOR_END: seed_source_trait
+// ANCHOR_END: treeish_source_trait
 
 // ── PipelineExec ──────────────────────────────────────
 
@@ -133,71 +97,9 @@ pub trait PipelineExec: TreeishSource {
     }
 }
 
-// ANCHOR_END: treeish_source_trait
-
 // ANCHOR_END: pipeline_exec_trait
 
 impl<P: TreeishSource> PipelineExec for P {}
-
-// ── PipelineExecSeed ──────────────────────────────────
-
-/// Entry-dispatch execution. Only available on `SeedSource` pipelines.
-// ANCHOR: pipeline_exec_seed_trait
-pub trait PipelineExecSeed: SeedSource {
-    /// Run from entry seeds via a finishing `SeedLift`. Shared-pinned.
-    fn run<E>(
-        &self,
-        exec:        &E,
-        entry_seeds: Edgy<(), Self::Seed>,
-        entry_heap:  Self::H,
-    ) -> Self::R
-    where Self: SeedSource<Domain = Shared>,
-          E: Executor<
-            LiftedNode<Self::N>, Self::R,
-            Shared, Treeish<LiftedNode<Self::N>>>,
-          Self::Seed: Send + Sync,
-          Self::N:    Send + Sync,
-          Self::H:    Send + Sync,
-    {
-        self.with_seeded(|grow, treeish, fold| {
-            let grow: Arc<dyn Fn(&Self::Seed) -> Self::N + Send + Sync> = grow;
-            let sl: SeedLift<Self::N, Self::Seed, Self::H> =
-                SeedLift::from_arc_grow(grow, entry_seeds, move || entry_heap.clone());
-            sl.apply(treeish, fold, |lifted_treeish, lifted_fold| {
-                exec.run(&lifted_fold, &lifted_treeish, &LiftedNode::Entry)
-            })
-        })
-    }
-
-    /// Sugar: wraps a `&[Seed]` slice into the canonical
-    /// `Edgy<(), Seed>` callback-iterator form.
-    fn run_from_slice<E>(
-        &self,
-        exec:       &E,
-        seeds:      &[Self::Seed],
-        entry_heap: Self::H,
-    ) -> Self::R
-    where Self: SeedSource<Domain = Shared>,
-          E: Executor<
-            LiftedNode<Self::N>, Self::R,
-            Shared, Treeish<LiftedNode<Self::N>>>,
-          Self::Seed: Send + Sync,
-          Self::N:    Send + Sync,
-          Self::H:    Send + Sync,
-    {
-        let owned: Vec<Self::Seed> = seeds.to_vec();
-        let entry_seeds: Edgy<(), Self::Seed> = graph::edgy_visit(
-            move |_: &(), cb: &mut dyn FnMut(&Self::Seed)| {
-                for s in &owned { cb(s); }
-            }
-        );
-        self.run(exec, entry_seeds, entry_heap)
-    }
-}
-
-// ANCHOR_END: pipeline_exec_seed_trait
-
-impl<P: SeedSource> PipelineExecSeed for P {}
 
 // ── PipelineExecOnce ──────────────────────────────────
 

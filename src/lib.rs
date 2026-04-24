@@ -3,18 +3,22 @@
 //! Sits above `hylic` (core). Provides:
 //!
 //!   - Two Stage-1 pipeline typestates: [`SeedPipeline`], [`TreeishPipeline`]
-//!   - One Stage-2 pipeline typestate: [`LiftedPipeline`]
+//!   - Two Stage-2 pipeline typestates: [`LiftedPipeline`] (from TreeishPipeline;
+//!     chain over `N`) and [`LiftedSeedPipeline`] (from SeedPipeline; chain over
+//!     `LiftedNode<N>` — see the Option-B design in
+//!     `KB/.plans/project-entry-refactor/`).
 //!   - One out-of-band one-shot pipeline: [`OwnedPipeline`]
-//!   - Source interface traits: [`TreeishSource`], [`SeedSource`]
-//!   - Blanket execution traits: [`PipelineExec`], [`PipelineExecSeed`], [`PipelineExecOnce`]
-//!   - Blanket sugar traits:
-//!     - Stage 1 (SeedPipeline): [`SeedSugarsShared`], [`SeedSugarsLocal`]
-//!       (`filter_seeds`, `wrap_grow`, `map_node_bi`, `map_seed_bi`).
-//!     - Stage 1 (TreeishPipeline): [`TreeishSugarsShared`], [`TreeishSugarsLocal`]
-//!       (just `map_node_bi`).
-//!     - Stage 2: [`LiftedSugarsShared`], [`LiftedSugarsLocal`].
-//!       On `LiftedPipeline` use `.then_lift(Shared::map_n_bi_lift(co, contra))`
-//!       for N-change (no auto-lift method to avoid overlap with Stage-1).
+//!   - Source interface traits: [`TreeishSource`], [`PipelineSourceOnce`]
+//!   - Blanket execution traits: [`PipelineExec`], [`PipelineExecOnce`]
+//!     ([`LiftedSeedPipeline`] has inherent `.run` / `.run_from_slice`;
+//!     the seed axis is not a trait-level concern.)
+//!   - Stage-1 sugar traits:
+//!     - SeedPipeline: [`SeedSugarsShared`], [`SeedSugarsLocal`]
+//!     - TreeishPipeline: [`TreeishSugarsShared`], [`TreeishSugarsLocal`]
+//!   - Stage-2 sugars:
+//!     - [`LiftedPipeline`] (seedless): [`LiftedSugarsShared`], [`LiftedSugarsLocal`].
+//!     - [`LiftedSeedPipeline`]: inherent methods (`wrap_init`, `explain`, …).
+//!       User closures are over `N`; Node/Entry dispatch is internal.
 //!
 //! Users who need only the lift-primitive surface (`Shared::wrap_init_lift`,
 //! `Shared::n_lift`, `LiftBare::apply_bare`, …) can depend on `hylic`
@@ -26,6 +30,7 @@ pub mod source;
 pub mod seed;
 pub mod treeish;
 pub mod lifted;
+pub mod lifted_seed;
 pub mod owned;
 pub mod sugars;
 
@@ -35,13 +40,14 @@ mod tests;
 pub mod prelude;
 
 pub use source::{
-    TreeishSource, SeedSource,
+    TreeishSource,
     PipelineSourceOnce,
-    PipelineExec, PipelineExecSeed, PipelineExecOnce,
+    PipelineExec, PipelineExecOnce,
 };
 pub use seed::SeedPipeline;
 pub use treeish::TreeishPipeline;
 pub use lifted::LiftedPipeline;
+pub use lifted_seed::LiftedSeedPipeline;
 pub use owned::OwnedPipeline;
 pub use sugars::{
     SeedSugarsShared, SeedSugarsLocal,

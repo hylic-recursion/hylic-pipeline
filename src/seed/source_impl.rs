@@ -1,14 +1,16 @@
-//! SeedPipeline impls both source traits:
-//! - `TreeishSource`: fuses (grow, seeds_from_node) into a treeish
-//!   over N at yield time; the caller receives the 2-slot pair.
-//! - `SeedSource`: extends with the 3-slot yield that includes the
-//!   pipeline's stored `grow` closure, enabling SeedLift composition.
+//! SeedPipeline's `TreeishSource` impl — fuses grow + seeds_from_node
+//! into a plain `Graph<N>` at yield time so the seed structure can be
+//! traversed by a `run_from_node` executor.
+//!
+//! The seed axis as a *lift-chain* input is handled by
+//! `LiftedSeedPipeline` (see `lifted_seed/`). `SeedSource` and
+//! `with_seeded` were removed by the Option-B pivot.
 
 use hylic::domain::Domain;
-use hylic::ops::{IdentityLift, ShapeCapable};
+use hylic::ops::{IdentityLift, LiftedNode, ShapeCapable};
 use super::SeedPipeline;
-use super::super::source::{TreeishSource, SeedSource};
-use super::super::lifted::LiftedPipeline;
+use super::super::lifted_seed::LiftedSeedPipeline;
+use super::super::source::TreeishSource;
 
 impl<D, N, Seed, H, R> TreeishSource for SeedPipeline<D, N, Seed, H, R>
 where D: ShapeCapable<N>,
@@ -38,38 +40,18 @@ where D: ShapeCapable<N>,
     }
 }
 
-impl<D, N, Seed, H, R> SeedSource for SeedPipeline<D, N, Seed, H, R>
-where D: ShapeCapable<N>,
-      N: Clone + 'static, Seed: Clone + 'static,
-      H: Clone + 'static, R: Clone + 'static,
-      <D as Domain<N>>::Grow<Seed, N>: Clone,
-      <D as Domain<N>>::Graph<Seed>:   Clone,
-      <D as Domain<N>>::Fold<H, R>:    Clone,
-{
-    type Seed = Seed;
-
-    fn with_seeded<T>(
-        &self,
-        cont: impl FnOnce(
-            <D as Domain<N>>::Grow<Seed, N>,
-            <D as Domain<N>>::Graph<N>,
-            <D as Domain<N>>::Fold<H, R>,
-        ) -> T,
-    ) -> T {
-        let treeish = D::fuse_grow_with_seeds::<Seed>(
-            self.grow.clone(),
-            self.seeds_from_node.clone(),
-        );
-        cont(self.grow.clone(), treeish, self.fold.clone())
-    }
-}
+// ── Transition to Stage 2 ──────────────────────────────
 
 impl<D, N, Seed, H, R> SeedPipeline<D, N, Seed, H, R>
-where D: Domain<N>,
+where D: Domain<N> + Domain<LiftedNode<N>>,
       N: 'static, Seed: 'static, H: 'static, R: 'static,
 {
-    /// Transition to Stage 2 with an IdentityLift.
-    pub fn lift(self) -> LiftedPipeline<Self, IdentityLift> {
-        LiftedPipeline::new(self, IdentityLift)
+    /// Transition to Stage 2. Produces a `LiftedSeedPipeline` whose
+    /// chain is typed at `LiftedNode<N>`. SeedLift is NOT yet
+    /// constructed — it's assembled at `.run` time from user-supplied
+    /// `root_seeds` and `entry_heap`. See the Option-B design in
+    /// `KB/.plans/project-entry-refactor/`.
+    pub fn lift(self) -> LiftedSeedPipeline<Self, IdentityLift> {
+        LiftedSeedPipeline::new(self, IdentityLift)
     }
 }

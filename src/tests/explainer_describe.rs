@@ -1,15 +1,15 @@
 //! ExplainerDescribe: streaming per-node trace emission with
-//! transparent R. Proves MapR = R (downstream sees original
-//! result) while emit-callback receives a rendered trace string
-//! for each node's finalize.
+//! transparent R. Under Option B the chain is typed at
+//! `LiftedNode<N>`; Entry is a first-class value of the node type.
 
 use std::sync::{Arc, Mutex};
-use crate::{SeedPipeline, PipelineExecSeed};
+use crate::SeedPipeline;
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
 use hylic::domain::Shared;
 use hylic::graph::edgy_visit;
-use hylic::prelude::{trace_fold_compact, ExplainerHeap};
+use hylic::ops::LiftedNode;
+use hylic::prelude::trace_fold_compact;
 
 fn basic_pipeline() -> SeedPipeline<Shared, u64, u64, u64, u64> {
     let ch: Arc<Vec<Vec<u64>>> = Arc::new(vec![vec![1, 2], vec![3], vec![], vec![]]);
@@ -26,29 +26,26 @@ fn basic_pipeline() -> SeedPipeline<Shared, u64, u64, u64, u64> {
 
 #[test]
 fn explainer_describe_streams_per_node_and_preserves_r() {
-    // Collect emitted trace strings. Arc<Mutex<Vec<String>>> because
-    // the emit closure must be Send+Sync for ShareableLift + Funnel,
-    // but we're running Fused — either way, Send+Sync is OK.
     let captured: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
     let captured_for_emit = captured.clone();
 
+    // trace_fold_compact renders `heap.node`; at the chain's
+    // seed-closed level the node type is LiftedNode<u64>.
     let r: u64 = basic_pipeline()
         .lift()
-        .then_lift(Shared::explainer_describe_lift::<u64, u64, u64, _, _>(
-            trace_fold_compact::<u64, u64, u64>,
+        .explain_describe(
+            trace_fold_compact::<LiftedNode<u64>, u64, u64>,
             move |s: &str| {
                 captured_for_emit.lock().unwrap().push(s.to_string());
             },
-        ))
-        .run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], ExplainerHeap::new(0u64, 0u64));
+        )
+        .run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
 
-    // R unchanged: 0 + 1 + 2 + 3 = 6.
+    // R unchanged: sum = 0 + 1 + 2 + 3 = 6.
     assert_eq!(r, 6);
 
-    // Trace strings emitted per node. At least one per non-leaf node.
     let lines = captured.lock().unwrap();
     assert!(!lines.is_empty(), "trace emitted at least one line");
-    // Each line should contain "=>" from trace_fold_compact.
     for line in lines.iter() {
         assert!(line.contains("=>"), "trace line formatted: {line}");
     }

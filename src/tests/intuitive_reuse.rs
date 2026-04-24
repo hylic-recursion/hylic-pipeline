@@ -3,7 +3,7 @@
 //! user-written lifts; a custom lift that changes both N and R.
 
 use std::sync::Arc;
-use crate::{SeedPipeline, PipelineExecSeed, LiftedSugarsShared, SeedSugarsShared};
+use crate::{SeedPipeline, LiftedSugarsShared, SeedSugarsShared};
 use hylic::domain::Domain;
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
@@ -31,16 +31,16 @@ fn reuse_pipeline_across_runs() {
     // Same pipeline, two entry-seed sets, both succeed independently.
     let pipe = basic();
 
-    let r1 = pipe.run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
+    let r1 = pipe.clone().lift().run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
     // 0 + 1 + 2 + 3 = 6.
     assert_eq!(r1, 6);
 
-    let r2 = pipe.run_from_slice(&dom::exec(funnel::Spec::default(4)), &[4u64], 0u64);
+    let r2 = pipe.clone().lift().run_from_slice(&dom::exec(funnel::Spec::default(4)), &[4u64], 0u64);
     // 4 + 1 + 3 = 8. (ch[4] = [1]; ch[1] = [3]; ch[3] = [].)
     assert_eq!(r2, 8);
 
-    // Original pipe is still usable — PipelineSource takes &self.
-    let r3 = pipe.run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64, 4u64], 0u64);
+    // Original pipe is still usable via Clone — each .lift() consumes.
+    let r3 = pipe.lift().run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64, 4u64], 0u64);
     // 6 + 8 = 14.
     assert_eq!(r3, 14);
 }

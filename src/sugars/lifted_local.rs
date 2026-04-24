@@ -11,7 +11,6 @@
 #![allow(missing_docs)] // module-level: public items are per-domain/per-policy mirrors of documented primitives
 
 use crate::lifted::LiftedPipeline;
-use crate::seed::SeedPipeline;
 use crate::treeish::TreeishPipeline;
 use crate::source::TreeishSource;
 use hylic::domain::{Domain, Local};
@@ -93,31 +92,11 @@ where
     { self.then_lift(Local::explainer_lift::<N, H, R>()) }
 }
 
-// ── Impl 1: SeedPipeline — auto-lifts first ────────────────────
+// SeedPipeline<Local, …> no longer auto-lifts into LiftedSugarsLocal
+// (Option B). LiftedSeedPipeline is Shared-pinned for now; Local
+// SeedPipelines can still reach .run_from_node via TreeishSource.
 
-impl<N, Seed, H, R> LiftedSugarsLocal<N, H, R> for SeedPipeline<Local, N, Seed, H, R>
-where N: Clone + 'static, Seed: Clone + 'static,
-      H: Clone + 'static, R: Clone + 'static,
-{
-    type With<L2> = LiftedPipeline<Self, ComposedLift<IdentityLift, L2>>
-    where L2: Lift<Local, N, H, R>,
-          L2::N2:   Clone + 'static,
-          L2::MapH: Clone + 'static,
-          L2::MapR: Clone + 'static,
-          Local:    Domain<L2::N2>;
-
-    fn then_lift<L2>(self, l: L2) -> Self::With<L2>
-    where L2: Lift<Local, N, H, R>,
-          L2::N2:   Clone + 'static,
-          L2::MapH: Clone + 'static,
-          L2::MapR: Clone + 'static,
-          Local:    Domain<L2::N2>,
-    {
-        LiftedPipeline::then_lift(self.lift(), l)
-    }
-}
-
-// ── Impl 2: TreeishPipeline — auto-lifts first ─────────────────
+// ── Impl 1: TreeishPipeline — auto-lifts first ─────────────────
 
 impl<N, H, R> LiftedSugarsLocal<N, H, R> for TreeishPipeline<Local, N, H, R>
 where N: Clone + 'static, H: Clone + 'static, R: Clone + 'static,
@@ -140,7 +119,7 @@ where N: Clone + 'static, H: Clone + 'static, R: Clone + 'static,
     }
 }
 
-// ── Impl 3: LiftedPipeline — compose at the tip ────────────────
+// ── Impl 2: LiftedPipeline — compose at the tip ────────────────
 
 impl<Base, L> LiftedSugarsLocal<L::N2, L::MapH, L::MapR> for LiftedPipeline<Base, L>
 where Base: TreeishSource<Domain = Local>,

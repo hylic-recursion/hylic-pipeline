@@ -1,11 +1,9 @@
-//! TreeishSource.with_treeish + SeedSource.with_seeded + blanket
-//! PipelineExec / PipelineExecSeed.
+//! TreeishSource + PipelineExec on SeedPipeline (the seedless /
+//! no-SeedLift path). The seeded / SeedLift path is tested via
+//! `LiftedSeedPipeline::.run(...)` in other test files.
 
 use std::sync::Arc;
-use crate::{
-    SeedPipeline, TreeishSource, SeedSource, PipelineExec, PipelineExecSeed,
-    LiftedSugarsShared,
-};
+use crate::{SeedPipeline, TreeishSource, PipelineExec};
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
 use hylic::graph::edgy_visit;
@@ -22,22 +20,10 @@ fn basic_pipeline() -> SeedPipeline<hylic::domain::Shared, u64, u64, u64, u64> {
 }
 
 #[test]
-fn with_seeded_yields_triple() {
-    // SeedSource's 3-slot yield. Inspect grow, treeish, fold.
-    let (inspected_n_val, children_visited) = basic_pipeline()
-        .with_seeded(|grow, treeish, _fold| {
-            let n = grow(&0u64);
-            let mut kids = Vec::new();
-            treeish.visit(&n, &mut |c: &u64| kids.push(*c));
-            (n, kids)
-        });
-    assert_eq!(inspected_n_val, 0);
-    assert_eq!(children_visited, vec![1, 2]);
-}
-
-#[test]
 fn with_treeish_yields_pair() {
-    // TreeishSource's 2-slot yield. Seed-agnostic; grow is not exposed.
+    // SeedPipeline implements TreeishSource by fusing grow +
+    // seeds_from_node into a single Graph<N>. Seedless; grow is
+    // not exposed.
     let r: u64 = basic_pipeline()
         .with_treeish(|treeish, fold| {
             dom::FUSED.run(&fold, &treeish, &0u64)
@@ -46,32 +32,14 @@ fn with_treeish_yields_pair() {
 }
 
 #[test]
-fn with_treeish_delegates_through_lift() {
-    // LiftedPipeline's TreeishSource impl synthesises a panic-grow
-    // to feed the lift chain, then discards it. Seed-agnostic path.
-    let r: (u64, bool) = basic_pipeline()
-        .lift()
-        .zipmap(|r: &u64| *r > 5)
-        .with_treeish(|treeish, fold| {
-            dom::FUSED.run(&fold, &treeish, &0u64)
-        });
-    assert_eq!(r, (6u64, true));
-}
-
-#[test]
-fn run_from_node_skips_entry() {
-    // PipelineExec (blanket on TreeishSource) bypasses SeedLift.
-    let r = basic_pipeline()
-        .lift()
-        .run_from_node(&dom::exec(funnel::Spec::default(4)), &0u64);
+fn run_from_node_bypasses_seedlift() {
+    // PipelineExec (blanket on TreeishSource) runs the seedless
+    // path directly on a SeedPipeline. SeedLift is not involved;
+    // there's no Entry variant in sight.
+    let r = PipelineExec::run_from_node(
+        &basic_pipeline(),
+        &dom::exec(funnel::Spec::default(4)),
+        &0u64,
+    );
     assert_eq!(r, 6);
-}
-
-#[test]
-fn run_from_slice_covers_both_stages() {
-    // PipelineExecSeed (blanket on SeedSource) handles Entry dispatch.
-    let stage1_result = basic_pipeline().run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
-    let stage2_result = basic_pipeline().lift().run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
-    assert_eq!(stage1_result, stage2_result);
-    assert_eq!(stage1_result, 6);
 }

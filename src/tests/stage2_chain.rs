@@ -1,7 +1,7 @@
 //! Stage-2 then_lift + the five algebra sugars.
 
 use std::sync::Arc;
-use crate::{SeedPipeline, PipelineExecSeed, LiftedSugarsShared};
+use crate::{SeedPipeline, LiftedSugarsShared};
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
 use hylic::graph::edgy_visit;

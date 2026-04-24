@@ -71,8 +71,7 @@ fn main() {
     // once per edge: app(1) + db(1) + log(1) + http(1) + tls(1) +
     // log(1) + log(1) + log(1) = 8 visits. See below for how to
     // collapse them.
-    let total_visits: u64 = pipeline.clone()
-        .run_from_slice(&FUSED, &["app".to_string()], 0);
+    let total_visits: u64 = pipeline.clone().lift().run_from_slice(&FUSED, &["app".to_string()], 0);
 
     println!("total visits (with repetition) = {total_visits}");
     assert_eq!(total_visits, 8);

@@ -3,12 +3,12 @@
 //! and transformations do their jobs.
 
 use std::sync::Arc;
-use crate::{SeedPipeline, PipelineExecSeed, LiftedSugarsShared, SeedSugarsShared};
+use crate::{SeedPipeline, SeedSugarsShared};
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
 use hylic::graph::edgy_visit;
-use hylic::domain::Shared;
-use hylic::prelude::{ExplainerHeap, ExplainerResult};
+use hylic::ops::LiftedNode;
+use hylic::prelude::ExplainerResult;
 
 /// Flat adjacency: 0 → {1, 2}; 1 → {3}; 2, 3 leaves.
 fn basic_pipeline() -> SeedPipeline<hylic::domain::Shared, u64, u64, u64, u64> {
@@ -50,6 +50,7 @@ fn t1_stage1_heavy_reshape() {
             let b = orig(s);
             BoxedU64(b.0 + 1000)
         })
+        .lift()
         .run_from_slice(&dom::exec(funnel::Spec::default(4)), &["seed-0".to_string()], 0u64);
 
     // Tree after filter+wrap_grow:
@@ -64,7 +65,10 @@ fn t2_full_coalgebra_and_algebra_shape_shift() {
     // Stage 1 shape-shift, then lift, then every Stage-2 sugar,
     // ending with Explainer. Assert the ExplainerResult comes
     // through with the full shape-shifted types.
-    let result: ExplainerResult<BoxedU64, u64, i128> = basic_pipeline()
+    // Under Option B, the seed chain's N is LiftedNode<BoxedU64> after
+    // .lift(). Explainer's result therefore carries LiftedNode<BoxedU64>
+    // in its heap.node field.
+    let result: ExplainerResult<LiftedNode<BoxedU64>, u64, i128> = basic_pipeline()
         .map_node_bi(
             |n: &u64| BoxedU64(*n),
             |b: &BoxedU64| b.0,
@@ -81,12 +85,8 @@ fn t2_full_coalgebra_and_algebra_shape_shift() {
                 (v, flag)
             },
         )
-        .then_lift(Shared::explainer_lift::<BoxedU64, u64, i128>())
-        .run_from_slice(
-            &dom::exec(funnel::Spec::default(4)),
-            &[0u64],
-            ExplainerHeap::new(BoxedU64(0), 0u64),
-        );
+        .explain()
+        .run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
 
     // Trace:
     // filter_seeds keeps 1 (drops 2); 0 → {1}; 1 → {3}.

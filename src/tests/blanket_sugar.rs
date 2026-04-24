@@ -1,12 +1,13 @@
-//! Smoke tests for the `LiftedSugarsShared` blanket trait.
+//! Smoke tests for Stage-2 sugars on SeedPipeline (via LiftedSeedPipeline)
+//! and TreeishPipeline (via LiftedPipeline).
 //!
-//! Verifies that sugars written once on the trait are callable on
-//! SeedPipeline, TreeishPipeline, and LiftedPipeline with identical
-//! syntax (no `.lift()` ceremony required for Stage-1 types).
+//! Under Option B: SeedPipeline requires an explicit `.lift()` to
+//! transition to LiftedSeedPipeline before Stage-2 sugars apply.
+//! TreeishPipeline retains the blanket auto-lift trait.
 
 use std::sync::Arc;
 use crate::{
-    SeedPipeline, TreeishPipeline, PipelineExec, PipelineExecSeed,
+    SeedPipeline, TreeishPipeline, PipelineExec,
     LiftedSugarsShared,
 };
 use hylic::domain::shared::{self as dom, fold::fold};
@@ -24,9 +25,9 @@ fn seed_pipeline() -> SeedPipeline<Shared, u64, u64, u64, u64> {
 }
 
 #[test]
-fn seed_pipeline_wrap_init_via_trait_no_lift_call() {
-    // Note: no .lift() — trait auto-lifts.
+fn seed_pipeline_wrap_init_after_lift() {
     let r = seed_pipeline()
+        .lift()
         .wrap_init(|n: &u64, orig: &dyn Fn(&u64) -> u64| orig(n) + 1)
         .run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
     // wrap_init(+1) on tree {0→{1,2}, 1→{3}}:
@@ -35,8 +36,9 @@ fn seed_pipeline_wrap_init_via_trait_no_lift_call() {
 }
 
 #[test]
-fn seed_pipeline_chain_via_trait() {
+fn seed_pipeline_chain_after_lift() {
     let r = seed_pipeline()
+        .lift()
         .wrap_init(|n: &u64, orig: &dyn Fn(&u64) -> u64| orig(n) + 1)
         .zipmap(|r: &u64| *r > 5)
         .run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
@@ -58,18 +60,9 @@ fn treeish_pipeline_wrap_init_via_trait() {
 }
 
 #[test]
-fn lifted_pipeline_also_supports_trait_methods() {
-    // After .lift(), the LiftedPipeline impl of the trait kicks in.
-    let r = seed_pipeline()
-        .lift()
-        .wrap_init(|n: &u64, orig: &dyn Fn(&u64) -> u64| orig(n) + 1)
-        .run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
-    assert_eq!(r, 10);
-}
-
-#[test]
-fn map_r_bi_changes_r_type_via_trait() {
+fn map_r_bi_after_lift() {
     let r: String = seed_pipeline()
+        .lift()
         .map_r_bi(
             |r: &u64| format!("sum={r}"),
             |s: &String| s.strip_prefix("sum=").unwrap().parse::<u64>().unwrap(),

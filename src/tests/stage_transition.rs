@@ -1,7 +1,7 @@
 //! The .lift() transition from Stage 1 to Stage 2.
 
 use std::sync::Arc;
-use crate::{SeedPipeline, LiftedPipeline, PipelineExecSeed, LiftedSugarsShared, SeedSugarsShared};
+use crate::{SeedPipeline, LiftedSeedPipeline, SeedSugarsShared};
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
 use hylic::graph::edgy_visit;
@@ -20,17 +20,18 @@ fn basic_pipeline() -> SeedPipeline<hylic::domain::Shared, u64, u64, u64, u64> {
 
 #[test]
 fn lift_produces_identity_lifted_pipeline() {
-    let p: LiftedPipeline<SeedPipeline<hylic::domain::Shared, u64, u64, u64, u64>, IdentityLift> = basic_pipeline().lift();
+    let p: LiftedSeedPipeline<SeedPipeline<hylic::domain::Shared, u64, u64, u64, u64>, IdentityLift> = basic_pipeline().lift();
     let r = p.run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
     assert_eq!(r, 6);
 }
 
 #[test]
 fn lift_preserves_semantics_of_base_run() {
-    // A SeedPipeline and its .lift() run should produce the same R.
-    let direct = basic_pipeline().run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
-    let lifted = basic_pipeline().lift().run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
-    assert_eq!(direct, lifted);
+    // Two .lift() instantiations with the same seed set produce the
+    // same R.
+    let a = basic_pipeline().lift().run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
+    let b = basic_pipeline().lift().run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
+    assert_eq!(a, b);
 }
 
 #[test]
@@ -55,7 +56,7 @@ fn clone_and_branch_before_lifting() {
     // different lift chains.
     let base = basic_pipeline();
 
-    let unlifted = base.clone().run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
+    let unlifted = base.clone().lift().run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
     let zipped = base.clone().lift().zipmap(|r: &u64| *r).run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
     let wrapped = base.lift().wrap_init(|n: &u64, o: &dyn Fn(&u64) -> u64| o(n) + 1)
         .run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);

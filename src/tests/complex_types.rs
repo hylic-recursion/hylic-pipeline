@@ -13,7 +13,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::{
-    SeedPipeline, TreeishPipeline, PipelineExec, PipelineExecSeed,
+    SeedPipeline, TreeishPipeline, PipelineExec,
     LiftedSugarsShared,
 };
 use hylic::domain::shared::{self as dom, fold::fold};
@@ -80,7 +80,7 @@ fn struct_n_string_seeds_vec_result_under_funnel() {
 
     let r = SeedPipeline::<hylic::domain::Shared, Module, String, ModReport, ModReport>::new(
         grow, seeds, &report_fold,
-    ).run_from_slice(
+    ).lift().run_from_slice(
         &dom::exec(funnel::Spec::default(4)),
         &["app".to_string()],
         ModReport::default(),

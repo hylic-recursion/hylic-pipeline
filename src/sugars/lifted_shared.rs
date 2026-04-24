@@ -14,7 +14,6 @@
 #![allow(missing_docs)] // module-level: public items are per-domain/per-policy mirrors of documented primitives
 
 use crate::lifted::LiftedPipeline;
-use crate::seed::SeedPipeline;
 use crate::treeish::TreeishPipeline;
 use crate::source::TreeishSource;
 use hylic::domain::{Domain, Shared};
@@ -103,31 +102,12 @@ where
 
 // ANCHOR_END: lifted_sugars_shared_trait
 
-// ── Impl 1: SeedPipeline — auto-lifts first ────────────────────
+// SeedPipeline no longer auto-lifts into LiftedSugarsShared —
+// SeedPipeline::lift() returns LiftedSeedPipeline (Option B), which
+// has its own inherent sugar methods. SeedPipeline users call
+// `.lift().wrap_init(...).run(...)` directly.
 
-impl<N, Seed, H, R> LiftedSugarsShared<N, H, R> for SeedPipeline<Shared, N, Seed, H, R>
-where N: Clone + 'static, Seed: Clone + 'static,
-      H: Clone + 'static, R: Clone + 'static,
-{
-    type With<L2> = LiftedPipeline<Self, ComposedLift<IdentityLift, L2>>
-    where L2: Lift<Shared, N, H, R>,
-          L2::N2:   Clone + 'static,
-          L2::MapH: Clone + 'static,
-          L2::MapR: Clone + 'static,
-          Shared:   Domain<L2::N2>;
-
-    fn then_lift<L2>(self, l: L2) -> Self::With<L2>
-    where L2: Lift<Shared, N, H, R>,
-          L2::N2:   Clone + 'static,
-          L2::MapH: Clone + 'static,
-          L2::MapR: Clone + 'static,
-          Shared:   Domain<L2::N2>,
-    {
-        LiftedPipeline::then_lift(self.lift(), l)
-    }
-}
-
-// ── Impl 2: TreeishPipeline — auto-lifts first ─────────────────
+// ── Impl 1: TreeishPipeline — auto-lifts first ─────────────────
 
 impl<N, H, R> LiftedSugarsShared<N, H, R> for TreeishPipeline<Shared, N, H, R>
 where N: Clone + 'static, H: Clone + 'static, R: Clone + 'static,
@@ -150,7 +130,7 @@ where N: Clone + 'static, H: Clone + 'static, R: Clone + 'static,
     }
 }
 
-// ── Impl 3: LiftedPipeline — compose at the tip ────────────────
+// ── Impl 2: LiftedPipeline — compose at the tip ────────────────
 
 impl<Base, L> LiftedSugarsShared<L::N2, L::MapH, L::MapR> for LiftedPipeline<Base, L>
 where Base: TreeishSource<Domain = Shared>,

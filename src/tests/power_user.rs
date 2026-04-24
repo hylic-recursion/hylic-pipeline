@@ -1,11 +1,11 @@
 //! End-to-end power-user fluent chains under both Fused and Funnel.
 
 use std::sync::Arc;
-use crate::{SeedPipeline, PipelineExecSeed, LiftedSugarsShared, SeedSugarsShared};
+use crate::{SeedPipeline, LiftedSugarsShared, SeedSugarsShared};
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::graph::edgy_visit;
-use hylic::domain::Shared;
-use hylic::prelude::{ExplainerHeap, ExplainerResult};
+use hylic::prelude::ExplainerResult;
+use hylic::ops::LiftedNode;
 
 fn tree_pipeline() -> SeedPipeline<hylic::domain::Shared, u64, u64, u64, u64> {
     let ch: Arc<Vec<Vec<u64>>> = Arc::new(vec![vec![1, 2], vec![3], vec![], vec![]]);
@@ -20,16 +20,16 @@ fn tree_pipeline() -> SeedPipeline<hylic::domain::Shared, u64, u64, u64, u64> {
 
 #[test]
 fn full_chain_with_explainer_fused() {
-    let result: ExplainerResult<u64, u64, (u64, bool)> = tree_pipeline()
+    let result: ExplainerResult<LiftedNode<u64>, u64, (u64, bool)> = tree_pipeline()
         .filter_seeds(|s: &u64| *s != 2)                                   // Stage 1
         .lift()                                                             // ─ transition
         .wrap_init(|n: &u64, orig: &dyn Fn(&u64) -> u64| orig(n) + 1)      // Stage 2
         .zipmap(|r: &u64| *r > 5)
-        .then_lift(Shared::explainer_lift::<u64, u64, (u64, bool)>())
+        .explain()
         .run_from_slice(
             &dom::FUSED,
             &[0u64],
-            ExplainerHeap::new(0u64, 0u64),
+            0u64,
         );
     // After filter_seeds(|s| *s != 2): 0 → {1}; 1 → {3}; 3 leaf.
     // wrap_init adds 1 to each node's init.
@@ -43,16 +43,16 @@ fn full_chain_with_explainer_fused() {
 fn full_chain_with_explainer_funnel() {
     use hylic::exec::funnel;
 
-    let result: ExplainerResult<u64, u64, (u64, bool)> = tree_pipeline()
+    let result: ExplainerResult<LiftedNode<u64>, u64, (u64, bool)> = tree_pipeline()
         .filter_seeds(|s: &u64| *s != 2)
         .lift()
         .wrap_init(|n: &u64, orig: &dyn Fn(&u64) -> u64| orig(n) + 1)
         .zipmap(|r: &u64| *r > 5)
-        .then_lift(Shared::explainer_lift::<u64, u64, (u64, bool)>())
+        .explain()
         .run_from_slice(
             &dom::exec(funnel::Spec::default(4)),
             &[0u64],
-            ExplainerHeap::new(0u64, 0u64),
+            0u64,
         );
     assert_eq!(result.orig_result, (7u64, true));
     assert!(!result.heap.transitions.is_empty());
