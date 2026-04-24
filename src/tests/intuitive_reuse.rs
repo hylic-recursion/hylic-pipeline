@@ -3,7 +3,7 @@
 //! user-written lifts; a custom lift that changes both N and R.
 
 use std::sync::Arc;
-use crate::{SeedPipeline, LiftedSugarsShared, SeedSugarsShared};
+use crate::{SeedPipeline, SeedSugarsShared};
 use hylic::domain::Domain;
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;

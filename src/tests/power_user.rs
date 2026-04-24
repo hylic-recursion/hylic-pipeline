@@ -1,7 +1,7 @@
 //! End-to-end power-user fluent chains under both Fused and Funnel.
 
 use std::sync::Arc;
-use crate::{SeedPipeline, LiftedSugarsShared, SeedSugarsShared};
+use crate::{SeedPipeline, SeedSugarsShared};
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::graph::edgy_visit;
 use hylic::prelude::ExplainerResult;
