@@ -77,6 +77,9 @@ fn then_lift_accepts_user_lift() {
     {
         type N2 = N; type MapH = H; type MapR = R;
 
+        fn project_entry_node(&self, n: N) -> N { n }
+        fn project_entry_heap(&self, h: H) -> H { h }
+
         fn apply<T>(
             &self,
             treeish: <D as Domain<N>>::Graph<N>,

@@ -58,6 +58,10 @@ fn two_user_lifts_in_series() {
     where N: Clone + 'static, H: Clone + 'static, R: Clone + Into<u64> + From<u64> + 'static,
     {
         type N2 = N; type MapH = H; type MapR = R;
+
+        fn project_entry_node(&self, n: N) -> N { n }
+        fn project_entry_heap(&self, h: H) -> H { h }
+
         fn apply<T>(
             &self,
             treeish: <Shared as Domain<N>>::Graph<N>,
@@ -84,6 +88,10 @@ fn two_user_lifts_in_series() {
     where N: Clone + 'static, H: Clone + 'static, R: Clone + Into<u64> + From<u64> + 'static,
     {
         type N2 = N; type MapH = H; type MapR = R;
+
+        fn project_entry_node(&self, n: N) -> N { n }
+        fn project_entry_heap(&self, h: H) -> H { h }
+
         fn apply<T>(
             &self,
             treeish: <Shared as Domain<N>>::Graph<N>,

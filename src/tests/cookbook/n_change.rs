@@ -66,7 +66,7 @@ fn inline_lift_depth_annotates() {
     );
     let base_treeish: Treeish<Node> = treeish(|n: &Node| n.children.clone());
 
-    let lift = Shared::n_lift::<Node, u64, u64, WithDepth, _, _>(
+    let lift = Shared::n_lift::<Node, u64, u64, WithDepth, _, _, _>(
         |base: &Treeish<Node>| -> Treeish<WithDepth> {
             let base = base.clone();
             treeish_visit(move |wd: &WithDepth, cb: &mut dyn FnMut(&WithDepth)| {
@@ -77,6 +77,7 @@ fn inline_lift_depth_annotates() {
             })
         },
         |wd: &WithDepth| wd.node.clone(),
+        |n: Node| WithDepth { node: n, depth: 0 },
     );
 
     // Build TreeishPipeline over the ANNOTATED WithDepth treeish so
