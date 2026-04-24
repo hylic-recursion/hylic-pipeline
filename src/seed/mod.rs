@@ -76,3 +76,24 @@ where N: 'static, Seed: 'static, H: 'static, R: 'static,
         }
     }
 }
+
+// ── Local convenience constructor ──────────────────────
+
+impl<N, Seed, H, R> SeedPipeline<hylic::domain::Local, N, Seed, H, R>
+where N: 'static, Seed: 'static, H: 'static, R: 'static,
+{
+    /// Local-specific constructor. Rc-backed `grow`; `seeds_from_node`
+    /// is a Local-edgy over `(N, Seed)`; `fold` is the Local Fold.
+    /// Closures need not be `Send + Sync`.
+    pub fn new_local(
+        grow: impl Fn(&Seed) -> N + 'static,
+        seeds_from_node: hylic::domain::local::edgy::Edgy<N, Seed>,
+        fold: &hylic::domain::local::Fold<N, H, R>,
+    ) -> Self {
+        SeedPipeline {
+            grow: std::rc::Rc::new(grow),
+            seeds_from_node,
+            fold: fold.clone(),
+        }
+    }
+}

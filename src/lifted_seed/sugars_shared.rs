@@ -20,6 +20,7 @@ use std::sync::Arc;
 use hylic::domain::{Domain, Shared};
 use hylic::domain::shared::fold::Fold;
 use hylic::ops::{ComposedLift, Lift, LiftedNode, ShapeLift};
+use hylic::ops::lifted_node_internal::{self as ln_int, LiftedNodeInner};
 use hylic::prelude::explainer::{ExplainerHeap, ExplainerResult};
 
 use super::LiftedSeedPipeline;
@@ -52,12 +53,12 @@ where N:    Clone + Send + Sync + 'static,
         let lifted_w = move |ln: &LiftedNode<CurN>,
                              orig: &dyn Fn(&LiftedNode<CurN>) -> L::MapH| -> L::MapH
         {
-            match ln {
-                LiftedNode::Node(n) => {
+            match ln_int::inner(ln) {
+                LiftedNodeInner::Node(n) => {
                     let user = user.clone();
-                    user(n, &|inner: &CurN| orig(&LiftedNode::Node(inner.clone())))
+                    user(n, &|inner: &CurN| orig(&ln_int::node(inner.clone())))
                 }
-                LiftedNode::Entry => orig(ln),
+                LiftedNodeInner::Entry => orig(ln),
             }
         };
         self.then_lift(Shared::wrap_init_lift::<LiftedNode<CurN>, L::MapH, L::MapR, _>(lifted_w))
@@ -78,9 +79,9 @@ where N:    Clone + Send + Sync + 'static,
         // Cache key is Option<K>: None for Entry (distinct per run),
         // Some(k) for Node(n).
         let lifted_key = move |ln: &LiftedNode<CurN>| -> Option<K> {
-            match ln {
-                LiftedNode::Node(n) => Some((key)(n)),
-                LiftedNode::Entry   => None,
+            match ln_int::inner(ln) {
+                LiftedNodeInner::Node(n) => Some((key)(n)),
+                LiftedNodeInner::Entry   => None,
             }
         };
         self.then_lift(Shared::memoize_by_lift::<LiftedNode<CurN>, L::MapH, L::MapR, Option<K>, _>(lifted_key))
@@ -98,9 +99,9 @@ where N:    Clone + Send + Sync + 'static,
     {
         let p = Arc::new(pred);
         let lifted_p = move |ln: &LiftedNode<CurN>| -> bool {
-            match ln {
-                LiftedNode::Node(n) => (p)(n),
-                LiftedNode::Entry   => true,
+            match ln_int::inner(ln) {
+                LiftedNodeInner::Node(n) => (p)(n),
+                LiftedNodeInner::Entry   => true,
             }
         };
         self.then_lift(Shared::filter_edges_lift::<LiftedNode<CurN>, L::MapH, L::MapR, _>(lifted_p))
@@ -160,6 +161,49 @@ where N:    Clone + Send + Sync + 'static,
           Bwd: Fn(&RNew) -> L::MapR + Send + Sync + 'static,
     {
         self.then_lift(Shared::map_r_bi_lift::<LiftedNode<CurN>, L::MapH, L::MapR, RNew, _, _>(forward, backward))
+    }
+
+    // ── N-change sugar: map_n_bi ──────────────────────────
+    //
+    // Stage-2 bijective N-change on a seed-closed chain. The user's
+    // (co, contra) run against the base `CurN`; the wrapper inside
+    // preserves Entry as Entry and maps Node(n) ↔ Node(n2).
+
+    /// Bijective N-change at Stage 2 on a seed-closed chain.
+    /// Entry is mapped to Entry identically; Node(n) is mapped
+    /// via the user-supplied (co, contra).
+    pub fn map_n_bi<N2, Co, Contra>(self, co: Co, contra: Contra)
+        -> LiftedSeedPipeline<
+            SeedPipeline<Shared, N, Seed, H, R>,
+            ComposedLift<L, ShapeLift<Shared, LiftedNode<CurN>, L::MapH, L::MapR,
+                                               LiftedNode<N2>, L::MapH, L::MapR>>,
+        >
+    where N2: Clone + Send + Sync + 'static,
+          Co:     Fn(&CurN) -> N2   + Send + Sync + 'static,
+          Contra: Fn(&N2)   -> CurN + Send + Sync + 'static,
+          Shared: Domain<LiftedNode<N2>>,
+    {
+        let co_arc     = Arc::new(co);
+        let contra_arc = Arc::new(contra);
+        let lifted_co = {
+            let c = co_arc.clone();
+            move |ln: &LiftedNode<CurN>| -> LiftedNode<N2> {
+                match ln_int::inner(ln) {
+                    LiftedNodeInner::Node(n) => ln_int::node((c)(n)),
+                    LiftedNodeInner::Entry   => ln_int::entry(),
+                }
+            }
+        };
+        let lifted_contra = {
+            let c = contra_arc.clone();
+            move |ln: &LiftedNode<N2>| -> LiftedNode<CurN> {
+                match ln_int::inner(ln) {
+                    LiftedNodeInner::Node(n) => ln_int::node((c)(n)),
+                    LiftedNodeInner::Entry   => ln_int::entry(),
+                }
+            }
+        };
+        self.then_lift(Shared::map_n_bi_lift::<LiftedNode<CurN>, L::MapH, L::MapR, LiftedNode<N2>, _, _>(lifted_co, lifted_contra))
     }
 
     // ── N-parametric library lift: explain ─────────────────

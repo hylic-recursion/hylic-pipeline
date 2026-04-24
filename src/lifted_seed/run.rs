@@ -4,79 +4,37 @@
 //! `grow` + `seeds_from_node` and the user's `root_seeds` +
 //! `entry_heap`. The composition is:
 //!
-//!     base.fuse(grow, seeds_from_node)                   — treeish<N>
-//!                   │
-//!                   │ SeedLift::apply  (N → LiftedNode<N>)
-//!                   ▼
-//!           (treeish<LiftedNode<N>>,  fold<LiftedNode<N>, H, R>)
-//!                   │
-//!                   │ pre_lift.apply  (the stored user chain)
-//!                   ▼
-//!           (treeish<L::N2>,          fold<L::N2, L::MapH, L::MapR>)
-//!                   │
-//!                   │ exec.run(&f, &t, &LiftedNode::Entry)
-//!                   ▼
-//!                   L::MapR
+//! ```text
+//! base.fuse(grow, seeds_from_node)                   — treeish<N>
+//!               │
+//!               │ SeedLift::apply  (N → LiftedNode<N>)
+//!               ▼
+//!       (treeish<LiftedNode<N>>,  fold<LiftedNode<N>, H, R>)
+//!               │
+//!               │ pre_lift.apply  (the stored user chain)
+//!               ▼
+//!       (treeish<L::N2>,          fold<L::N2, L::MapH, L::MapR>)
+//!               │
+//!               │ exec.run(&f, &t, &LiftedNode::entry())
+//!               ▼
+//!               L::MapR
+//! ```
 
 use std::sync::Arc;
 
 use hylic::domain::{Domain, Shared};
-use hylic::domain::shared::fold::Fold;
 use hylic::exec::Executor;
-use hylic::graph::{self, Edgy, Treeish};
+use hylic::graph::{self, Edgy};
 use hylic::ops::{Lift, LiftedNode, SeedLift, ShapeCapable, TreeOps};
+use hylic::ops::lifted_node_internal as ln_int;
+
 use super::LiftedSeedPipeline;
 use super::super::seed::SeedPipeline;
-
-// ── Shared-pinned normalisation helpers ──────────────────
-// The GAT `<Shared as Domain<N>>::Grow<Seed, N>` doesn't reduce to its
-// concrete carrier (`Arc<dyn Fn + Send + Sync>`) inside a generic impl
-// body. Pinning Self = Shared via a free fn lets the GAT normalise in
-// the fn's scope. Same trick used in hylic/src/domain/shared/shape_capable.rs.
-
-#[inline]
-fn shared_grow_as_arc<Seed: 'static, NOut: 'static>(
-    g: <Shared as Domain<NOut>>::Grow<Seed, NOut>,
-) -> Arc<dyn Fn(&Seed) -> NOut + Send + Sync> {
-    g
-}
-
-#[inline]
-fn shared_graph_as_edgy<NodeT: 'static>(
-    g: <Shared as Domain<NodeT>>::Graph<NodeT>,
-) -> Edgy<NodeT, NodeT> {
-    g
-}
-
-#[inline]
-fn shared_fold_as_concrete<NodeT: 'static, H: 'static, R: 'static>(
-    f: <Shared as Domain<NodeT>>::Fold<H, R>,
-) -> Fold<NodeT, H, R> {
-    f
-}
-
-// Reverse direction: concrete → abstract GAT, Shared-pinned.
-
-#[inline]
-fn shared_arc_as_grow<Seed: 'static, NOut: 'static>(
-    a: Arc<dyn Fn(&Seed) -> NOut + Send + Sync>,
-) -> <Shared as Domain<NOut>>::Grow<Seed, NOut> {
-    a
-}
-
-#[inline]
-fn shared_edgy_as_graph<NodeT: 'static>(
-    e: Edgy<NodeT, NodeT>,
-) -> <Shared as Domain<NodeT>>::Graph<NodeT> {
-    e
-}
-
-#[inline]
-fn shared_concrete_as_fold<NodeT: 'static, H: 'static, R: 'static>(
-    f: Fold<NodeT, H, R>,
-) -> <Shared as Domain<NodeT>>::Fold<H, R> {
-    f
-}
+use super::gat_helpers::{
+    shared_grow_as_arc, shared_arc_as_grow,
+    shared_graph_as_edgy, shared_edgy_as_graph,
+    shared_fold_as_concrete, shared_concrete_as_fold,
+};
 
 impl<N, Seed, H, R, L, CurN> LiftedSeedPipeline<SeedPipeline<Shared, N, Seed, H, R>, L>
 where N:    Clone + Send + Sync + 'static,
@@ -109,29 +67,23 @@ where N:    Clone + Send + Sync + 'static,
         let grow_abs = self.base.grow.clone();
         let grow_arc: Arc<dyn Fn(&Seed) -> N + Send + Sync> =
             shared_grow_as_arc::<Seed, N>(grow_abs);
-        let sl: SeedLift<N, Seed, H> = SeedLift::from_arc_grow(
+        let sl: SeedLift<Shared, N, Seed, H> = SeedLift::from_arc_grow(
             grow_arc.clone(),
             root_seeds,
             move || entry_heap.clone(),
         );
-        // Re-pack the Arc back into the abstract GAT shape for
-        // fuse_grow_with_seeds. Both layers are the same Arc; the
-        // wrapping only satisfies Rust's type checker.
         let base_treeish_abstract = Shared::fuse_grow_with_seeds::<Seed>(
             shared_arc_as_grow::<Seed, N>(grow_arc),
             self.base.seeds_from_node.clone(),
         );
-        let base_treeish_concrete: Treeish<N> =
-            shared_graph_as_edgy::<N>(base_treeish_abstract);
-        let base_fold_concrete: Fold<N, H, R> =
-            shared_fold_as_concrete::<N, H, R>(self.base.fold.clone());
-        // Pack back into the GAT shape SeedLift::apply expects.
+        let base_treeish_concrete = shared_graph_as_edgy::<N>(base_treeish_abstract);
+        let base_fold_concrete = shared_fold_as_concrete::<N, H, R>(self.base.fold.clone());
         sl.apply(
             shared_edgy_as_graph::<N>(base_treeish_concrete),
             shared_concrete_as_fold::<N, H, R>(base_fold_concrete),
             |lt, lf| {
                 self.pre_lift.apply(lt, lf, |tree_final, fold_final| {
-                    exec.run(&fold_final, &tree_final, &LiftedNode::Entry)
+                    exec.run(&fold_final, &tree_final, &ln_int::entry::<CurN>())
                 })
             },
         )

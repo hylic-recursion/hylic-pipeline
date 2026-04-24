@@ -16,6 +16,7 @@ mod shape_shifting;
 mod explainer_depth;
 mod intuitive_reuse;
 mod local_owned;
+mod local_seed_pipeline;
 mod explainer_describe;
 mod local_shape_lifts;
 mod local_sugars;

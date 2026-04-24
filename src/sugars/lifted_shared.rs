@@ -86,10 +86,19 @@ where
           KeyFn: Fn(&N) -> K + Send + Sync + 'static,
     { self.then_lift(Shared::memoize_by_lift::<N, H, R, K, _>(key_fn)) }
 
-    // N-change is provided by the Stage-1 sugar trait
-    // (`SeedSugarsShared::map_node_bi` / `TreeishSugarsShared::map_node_bi`)
-    // since it's a reshape primitive. On `LiftedPipeline`, use
-    // `.then_lift(Shared::map_n_bi_lift(co, contra))` explicitly.
+    // ── N-change ─────────────────────────────────────────────
+    //
+    // Bijective N-change at Stage 2 — distinct from Stage-1
+    // `map_node_bi` (different method name; the Stage-1 reshape is
+    // cheaper when applicable).
+
+    fn map_n_bi<N2, Co, Contra>(self, co: Co, contra: Contra)
+        -> Self::With<ShapeLift<Shared, N, H, R, N2, H, R>>
+    where N2: Clone + 'static,
+          Co:     Fn(&N)  -> N2 + Send + Sync + Clone + 'static,
+          Contra: Fn(&N2) -> N  + Send + Sync + Clone + 'static,
+          Shared: Domain<N2>,
+    { self.then_lift(Shared::map_n_bi_lift::<N, H, R, N2, _, _>(co, contra)) }
 
     // ── explainer ────────────────────────────────────────────
 

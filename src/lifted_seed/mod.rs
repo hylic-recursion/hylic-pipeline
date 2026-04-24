@@ -11,7 +11,10 @@ use hylic::ops::IdentityLift;
 
 pub mod primitives;
 pub mod run;
+pub mod run_local;
 pub mod sugars_shared;
+pub mod sugars_local;
+pub(crate) mod gat_helpers;
 
 // ANCHOR: lifted_seed_pipeline_struct
 /// Stage-2 typestate pipeline rooted at a `SeedPipeline`. Wraps the
