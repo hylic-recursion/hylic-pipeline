@@ -4,14 +4,13 @@
 //! lift chain transforms `(treeish, fold)` in two slots and the
 //! continuation receives the result.
 //!
-//! `SeedSource` impl (when Base is SeedSource): the base's `grow`
-//! is transported *covariantly* through the lift chain by
-//! post-composition with `L::project_entry_node`. Any N-changing
-//! lift is composable on the Seed path — the `N2 = Base::N`
-//! constraint that the old 2-slot `Lift` trait needed is gone,
-//! replaced by the honest functorial action of `Grow<Seed, ->`.
-
-use std::marker::PhantomData;
+//! `SeedSource` impl (when Base is SeedSource): the base's grow is
+//! threaded to the continuation *unchanged*. Because the 2-slot
+//! `Lift` trait cannot transform grow, the SeedSource impl is
+//! constrained to lift chains that preserve N (`L::N2 = Base::N`).
+//! Pipelines that need Stage-2 N-change must reshape at Stage 1
+//! via `map_node_bi` / `reshape`, or compose `SeedLift` explicitly
+//! (which retires the Seed axis) and run through `run_from_node`.
 
 use hylic::domain::Domain;
 use hylic::ops::Lift;
@@ -51,24 +50,16 @@ where Base: TreeishSource,
 
 impl<Base, L> SeedSource for LiftedPipeline<Base, L>
 where Base: SeedSource,
-      <Base as TreeishSource>::Domain: Domain<L::N2>,
+      // The lift chain must preserve N so the base's grow type
+      // stays compatible with the yielded triple. Stage-2
+      // N-change lifts cannot feed a SeedSource path.
       L: Lift<<Base as TreeishSource>::Domain,
               <Base as TreeishSource>::N,
               <Base as TreeishSource>::H,
-              <Base as TreeishSource>::R>
-         + Clone + Send + Sync + 'static,
-      L::N2:   Clone + Send + Sync + 'static,
+              <Base as TreeishSource>::R,
+              N2 = <Base as TreeishSource>::N>,
       L::MapH: Clone + 'static,
       L::MapR: Clone + 'static,
-      <Base as SeedSource>::Seed: Send + Sync + 'static,
-      <Base as TreeishSource>::N: Send + Sync + 'static,
-      // The base's Grow handle must survive the 'static transport
-      // closure. In the Shared domain it's Arc<dyn Fn + Send + Sync>,
-      // already Send+Sync; the bound just surfaces that fact.
-      <<Base as TreeishSource>::Domain as Domain<<Base as TreeishSource>::N>>::Grow<
-          <Base as SeedSource>::Seed,
-          <Base as TreeishSource>::N,
-      >: Send + Sync + 'static,
 {
     type Seed = <Base as SeedSource>::Seed;
 
@@ -81,35 +72,9 @@ where Base: SeedSource,
         ) -> T,
     ) -> T {
         self.base.with_seeded(|grow, treeish, fold| {
-            // Covariant transport: Grow<Seed, Base::N> → Grow<Seed, L::N2>.
-            //   grow_transported(seed) = lift.project_entry_node(grow(seed))
-            //
-            // We clone the lift into a 'static closure (per PoC-A); all
-            // shipped lifts are either Copy or Arc-backed so the clone
-            // is O(1). The closure wraps into the domain's native Grow
-            // handle via make_grow, preserving Send+Sync on Shared.
-            let lift = self.pre_lift.clone();
-            let grow_clone = grow;
-            let grow_transported = <<Base as TreeishSource>::Domain as Domain<L::N2>>::make_grow::<
-                <Base as SeedSource>::Seed, L::N2,
-            >(move |seed: &<Base as SeedSource>::Seed| {
-                let n = <<Base as TreeishSource>::Domain as Domain<
-                    <Base as TreeishSource>::N,
-                >>::invoke_grow::<<Base as SeedSource>::Seed, <Base as TreeishSource>::N>(
-                    &grow_clone, seed,
-                );
-                lift.project_entry_node(n)
-            });
             self.pre_lift.apply(treeish, fold, |treeish_out, fold_out| {
-                cont(grow_transported, treeish_out, fold_out)
+                cont(grow, treeish_out, fold_out)
             })
         })
     }
 }
-
-// PhantomData sentinel — compile-only marker to confirm the ordering
-// guarantee: `LiftedPipeline::SeedSource` requires `L: Send + Sync + 'static`
-// for the grow-transport closure to typecheck as the domain's
-// Grow<Seed, L::N2> handle.
-#[allow(dead_code)]
-fn _marker<Base, L>() -> PhantomData<(Base, L)> { PhantomData }

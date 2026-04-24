@@ -54,7 +54,7 @@ fn depth_annotator_via_inline_lift() {
     // Build the inline lift. The `build_treeish` closure is the
     // context-dependent bit: it walks the old treeish and tags each
     // child with depth = parent.depth + 1.
-    let lift = Shared::n_lift::<Node, u64, u64, WithDepth, _, _, _>(
+    let lift = Shared::n_lift::<Node, u64, u64, WithDepth, _, _>(
         // build_treeish: &Treeish<N> → Treeish<N2>. Walks parents.
         move |old_treeish: &Treeish<Node>| -> Treeish<WithDepth> {
             let old = old_treeish.clone();
@@ -70,8 +70,6 @@ fn depth_annotator_via_inline_lift() {
         // about depth per se; depth is used by the N2-aware fold
         // the user supplies.
         |wd: &WithDepth| wd.node.clone(),
-        // entry_forward: N → N2. Root-level promotion.
-        |n: Node| WithDepth { node: n, depth: 0 },
     );
 
     // Pipeline: TreeishPipeline(base_treeish, depth-weighted fold)
@@ -140,10 +138,9 @@ fn inline_lift_preserves_identity_on_node_type() {
         |h: &u64| *h,
     );
 
-    let lift = Shared::n_lift::<Boxed, u64, u64, Boxed, _, _, _>(
+    let lift = Shared::n_lift::<Boxed, u64, u64, Boxed, _, _>(
         |t: &Treeish<Boxed>| t.clone(),
         |n: &Boxed| n.clone(),
-        |n: Boxed| n,
     );
 
     let r = TreeishPipeline::new(base_treeish, &f)
