@@ -1,4 +1,4 @@
-//! Shared-domain stage-2 sugars for `LiftedSeedPipeline`.
+//! Shared-domain stage-2 sugars for seed-rooted `Stage2Pipeline`s.
 //!
 //! Two populations of sugar:
 //!
@@ -23,10 +23,10 @@ use hylic::ops::{ComposedLift, Lift, SeedNode, ShapeLift};
 use hylic::ops::seed_node_internal::{self as sn_int, SeedNodeInner};
 use hylic::prelude::explainer::{ExplainerHeap, ExplainerResult};
 
-use super::LiftedSeedPipeline;
+use crate::stage2::Stage2Pipeline;
 use super::super::seed::SeedPipeline;
 
-impl<N, Seed, H, R, L, CurN> LiftedSeedPipeline<SeedPipeline<Shared, N, Seed, H, R>, L>
+impl<N, Seed, H, R, L, CurN> Stage2Pipeline<SeedPipeline<Shared, N, Seed, H, R>, L>
 where N:    Clone + Send + Sync + 'static,
       Seed: Clone + Send + Sync + 'static,
       H:    Clone + Send + Sync + 'static,
@@ -42,7 +42,7 @@ where N:    Clone + Send + Sync + 'static,
     /// Wrap the init at every real Node. Entry's init
     /// (SeedLift's `entry_heap`) is untouched.
     pub fn wrap_init<W>(self, user_wrap: W)
-        -> LiftedSeedPipeline<
+        -> Stage2Pipeline<
             SeedPipeline<Shared, N, Seed, H, R>,
             ComposedLift<L, ShapeLift<Shared, SeedNode<CurN>, L::MapH, L::MapR,
                                                SeedNode<CurN>, L::MapH, L::MapR>>,
@@ -67,7 +67,7 @@ where N:    Clone + Send + Sync + 'static,
     /// Memoise by a key derived from real Nodes. Entry bypasses the
     /// cache (`key_fn` can't apply without an N).
     pub fn memoize_by<K, KeyFn>(self, key_fn: KeyFn)
-        -> LiftedSeedPipeline<
+        -> Stage2Pipeline<
             SeedPipeline<Shared, N, Seed, H, R>,
             ComposedLift<L, ShapeLift<Shared, SeedNode<CurN>, L::MapH, L::MapR,
                                                SeedNode<CurN>, L::MapH, L::MapR>>,
@@ -90,7 +90,7 @@ where N:    Clone + Send + Sync + 'static,
     /// Filter edges between real Nodes. Entry's fan-out (from
     /// `SeedLift`) is not filtered; the predicate is over `&CurN`.
     pub fn filter_edges<P>(self, pred: P)
-        -> LiftedSeedPipeline<
+        -> Stage2Pipeline<
             SeedPipeline<Shared, N, Seed, H, R>,
             ComposedLift<L, ShapeLift<Shared, SeedNode<CurN>, L::MapH, L::MapR,
                                                SeedNode<CurN>, L::MapH, L::MapR>>,
@@ -112,7 +112,7 @@ where N:    Clone + Send + Sync + 'static,
     /// Wrap the accumulate closure. No N in signature → applied
     /// uniformly at Node and Entry.
     pub fn wrap_accumulate<W>(self, wrapper: W)
-        -> LiftedSeedPipeline<
+        -> Stage2Pipeline<
             SeedPipeline<Shared, N, Seed, H, R>,
             ComposedLift<L, ShapeLift<Shared, SeedNode<CurN>, L::MapH, L::MapR,
                                                SeedNode<CurN>, L::MapH, L::MapR>>,
@@ -126,7 +126,7 @@ where N:    Clone + Send + Sync + 'static,
     /// Wrap the finalize closure. No N in signature → applied
     /// uniformly.
     pub fn wrap_finalize<W>(self, wrapper: W)
-        -> LiftedSeedPipeline<
+        -> Stage2Pipeline<
             SeedPipeline<Shared, N, Seed, H, R>,
             ComposedLift<L, ShapeLift<Shared, SeedNode<CurN>, L::MapH, L::MapR,
                                                SeedNode<CurN>, L::MapH, L::MapR>>,
@@ -138,7 +138,7 @@ where N:    Clone + Send + Sync + 'static,
 
     /// Pair R with an extra value per node. R-only; no N dispatch.
     pub fn zipmap<Extra, M>(self, mapper: M)
-        -> LiftedSeedPipeline<
+        -> Stage2Pipeline<
             SeedPipeline<Shared, N, Seed, H, R>,
             ComposedLift<L, ShapeLift<Shared, SeedNode<CurN>, L::MapH, L::MapR,
                                                SeedNode<CurN>, L::MapH, (L::MapR, Extra)>>,
@@ -151,7 +151,7 @@ where N:    Clone + Send + Sync + 'static,
 
     /// Bijectively transform R. R-only; no N dispatch.
     pub fn map_r_bi<RNew, Fwd, Bwd>(self, forward: Fwd, backward: Bwd)
-        -> LiftedSeedPipeline<
+        -> Stage2Pipeline<
             SeedPipeline<Shared, N, Seed, H, R>,
             ComposedLift<L, ShapeLift<Shared, SeedNode<CurN>, L::MapH, L::MapR,
                                                SeedNode<CurN>, L::MapH, RNew>>,
@@ -173,7 +173,7 @@ where N:    Clone + Send + Sync + 'static,
     /// Entry is mapped to Entry identically; Node(n) is mapped
     /// via the user-supplied (co, contra).
     pub fn map_n_bi<N2, Co, Contra>(self, co: Co, contra: Contra)
-        -> LiftedSeedPipeline<
+        -> Stage2Pipeline<
             SeedPipeline<Shared, N, Seed, H, R>,
             ComposedLift<L, ShapeLift<Shared, SeedNode<CurN>, L::MapH, L::MapR,
                                                SeedNode<N2>, L::MapH, L::MapR>>,
@@ -212,7 +212,7 @@ where N:    Clone + Send + Sync + 'static,
     /// `SeedNode<CurN>` — `Entry` is a first-class value; no
     /// sentinel needed.
     pub fn explain(self)
-        -> LiftedSeedPipeline<
+        -> Stage2Pipeline<
             SeedPipeline<Shared, N, Seed, H, R>,
             ComposedLift<L, ShapeLift<Shared, SeedNode<CurN>, L::MapH, L::MapR,
                                                SeedNode<CurN>,
@@ -228,7 +228,7 @@ where N:    Clone + Send + Sync + 'static,
     /// trace string at each node's finalize (Entry included); R is
     /// unchanged downstream.
     pub fn explain_describe<FmtFold, Emit>(self, fmt_ctor: FmtFold, emit: Emit)
-        -> LiftedSeedPipeline<
+        -> Stage2Pipeline<
             SeedPipeline<Shared, N, Seed, H, R>,
             ComposedLift<L, ShapeLift<Shared, SeedNode<CurN>, L::MapH, L::MapR,
                                                SeedNode<CurN>,

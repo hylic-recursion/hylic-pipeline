@@ -1,4 +1,4 @@
-//! Local-domain stage-2 sugars for `LiftedSeedPipeline`.
+//! Local-domain stage-2 sugars for seed-rooted `Stage2Pipeline`s.
 //!
 //! Mirror of `sugars_shared.rs` with `Rc` storage and no `Send + Sync`
 //! bounds. Structure and dispatch strategy are identical — only the
@@ -14,10 +14,10 @@ use hylic::ops::{ComposedLift, Lift, SeedNode, ShapeLift};
 use hylic::ops::seed_node_internal::{self as sn_int, SeedNodeInner};
 use hylic::prelude::explainer::{ExplainerHeap, ExplainerResult};
 
-use super::LiftedSeedPipeline;
+use crate::stage2::Stage2Pipeline;
 use super::super::seed::SeedPipeline;
 
-impl<N, Seed, H, R, L, CurN> LiftedSeedPipeline<SeedPipeline<Local, N, Seed, H, R>, L>
+impl<N, Seed, H, R, L, CurN> Stage2Pipeline<SeedPipeline<Local, N, Seed, H, R>, L>
 where N:    Clone + 'static,
       Seed: Clone + 'static,
       H:    Clone + 'static,
@@ -31,7 +31,7 @@ where N:    Clone + 'static,
     // ── User-closure, N-aware: Node/Entry dispatch ─────────
 
     pub fn wrap_init<W>(self, user_wrap: W)
-        -> LiftedSeedPipeline<
+        -> Stage2Pipeline<
             SeedPipeline<Local, N, Seed, H, R>,
             ComposedLift<L, ShapeLift<Local, SeedNode<CurN>, L::MapH, L::MapR,
                                               SeedNode<CurN>, L::MapH, L::MapR>>,
@@ -54,7 +54,7 @@ where N:    Clone + 'static,
     }
 
     pub fn memoize_by<K, KeyFn>(self, key_fn: KeyFn)
-        -> LiftedSeedPipeline<
+        -> Stage2Pipeline<
             SeedPipeline<Local, N, Seed, H, R>,
             ComposedLift<L, ShapeLift<Local, SeedNode<CurN>, L::MapH, L::MapR,
                                               SeedNode<CurN>, L::MapH, L::MapR>>,
@@ -73,7 +73,7 @@ where N:    Clone + 'static,
     }
 
     pub fn filter_edges<P>(self, pred: P)
-        -> LiftedSeedPipeline<
+        -> Stage2Pipeline<
             SeedPipeline<Local, N, Seed, H, R>,
             ComposedLift<L, ShapeLift<Local, SeedNode<CurN>, L::MapH, L::MapR,
                                               SeedNode<CurN>, L::MapH, L::MapR>>,
@@ -93,7 +93,7 @@ where N:    Clone + 'static,
     // ── N-free sugars: applied uniformly ──────────────────
 
     pub fn wrap_accumulate<W>(self, wrapper: W)
-        -> LiftedSeedPipeline<
+        -> Stage2Pipeline<
             SeedPipeline<Local, N, Seed, H, R>,
             ComposedLift<L, ShapeLift<Local, SeedNode<CurN>, L::MapH, L::MapR,
                                               SeedNode<CurN>, L::MapH, L::MapR>>,
@@ -104,7 +104,7 @@ where N:    Clone + 'static,
     }
 
     pub fn wrap_finalize<W>(self, wrapper: W)
-        -> LiftedSeedPipeline<
+        -> Stage2Pipeline<
             SeedPipeline<Local, N, Seed, H, R>,
             ComposedLift<L, ShapeLift<Local, SeedNode<CurN>, L::MapH, L::MapR,
                                               SeedNode<CurN>, L::MapH, L::MapR>>,
@@ -115,7 +115,7 @@ where N:    Clone + 'static,
     }
 
     pub fn zipmap<Extra, M>(self, mapper: M)
-        -> LiftedSeedPipeline<
+        -> Stage2Pipeline<
             SeedPipeline<Local, N, Seed, H, R>,
             ComposedLift<L, ShapeLift<Local, SeedNode<CurN>, L::MapH, L::MapR,
                                               SeedNode<CurN>, L::MapH, (L::MapR, Extra)>>,
@@ -127,7 +127,7 @@ where N:    Clone + 'static,
     }
 
     pub fn map_r_bi<RNew, Fwd, Bwd>(self, forward: Fwd, backward: Bwd)
-        -> LiftedSeedPipeline<
+        -> Stage2Pipeline<
             SeedPipeline<Local, N, Seed, H, R>,
             ComposedLift<L, ShapeLift<Local, SeedNode<CurN>, L::MapH, L::MapR,
                                               SeedNode<CurN>, L::MapH, RNew>>,
@@ -146,7 +146,7 @@ where N:    Clone + 'static,
     // preserves Entry as Entry and maps Node(n) ↔ Node(n2).
 
     pub fn map_n_bi<N2, Co, Contra>(self, co: Co, contra: Contra)
-        -> LiftedSeedPipeline<
+        -> Stage2Pipeline<
             SeedPipeline<Local, N, Seed, H, R>,
             ComposedLift<L, ShapeLift<Local, SeedNode<CurN>, L::MapH, L::MapR,
                                               SeedNode<N2>, L::MapH, L::MapR>>,
@@ -182,7 +182,7 @@ where N:    Clone + 'static,
     // ── N-parametric library lifts: explain / explain_describe ──
 
     pub fn explain(self)
-        -> LiftedSeedPipeline<
+        -> Stage2Pipeline<
             SeedPipeline<Local, N, Seed, H, R>,
             ComposedLift<L, ShapeLift<Local, SeedNode<CurN>, L::MapH, L::MapR,
                                               SeedNode<CurN>,

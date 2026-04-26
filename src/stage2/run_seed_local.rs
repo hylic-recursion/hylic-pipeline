@@ -1,14 +1,18 @@
 //! `.run` / `.run_from_slice` on `Stage2Pipeline<SeedPipeline<Local, ...>, L>`.
 //!
 //! Mirror of `run_seed_shared.rs` with `Rc` storage and no `Send + Sync` bounds.
-//! `SeedLift::new_local` / `from_rc_grow` is used in place of the
-//! Shared constructors. See `run_seed_shared.rs` for the composition flow.
+//! `SeedLift::new_local` / `from_rc_grow` is used in place of the Shared
+//! constructors. `root_seeds` is the per-domain
+//! `<Local as Domain<()>>::Graph<Seed>` (= `local_edgy::Edgy<(), Seed>`),
+//! so `Seed` carries no `Send + Sync` requirement on the Local path —
+//! closing the historical crack where the seed graph was Shared regardless
+//! of the pipeline's domain.
 
 use std::rc::Rc;
 
 use hylic::domain::{Domain, Local};
+use hylic::domain::local::edgy as local_edgy;
 use hylic::exec::Executor;
-use hylic::graph::{self, Edgy};
 use hylic::ops::{Lift, SeedNode, SeedLift, ShapeCapable, TreeOps};
 use hylic::ops::seed_node_internal as sn_int;
 
@@ -20,16 +24,9 @@ use crate::lifted_seed::gat_helpers::{
     local_fold_as_concrete, local_concrete_as_fold,
 };
 
-// `Seed: Send + Sync` is required because `SeedLift`'s `entry_seeds`
-// field is a Shared-domain `Edgy<(), Seed>` regardless of the
-// pipeline's domain (the callback-iterator shape is the library's
-// single seed-iteration protocol). Local-domain `N`, `H`, `R`, and
-// `CurN` retain no `Send + Sync` requirement. (Phase 6 of the
-// seed-pipeline-unification plan closes this crack via per-domain
-// entry_seeds.)
 impl<N, Seed, H, R, L, CurN> Stage2Pipeline<SeedPipeline<Local, N, Seed, H, R>, L>
 where N:    Clone + 'static,
-      Seed: Clone + Send + Sync + 'static,
+      Seed: Clone + 'static,
       H:    Clone + 'static,
       R:    Clone + 'static,
       CurN: Clone + 'static,
@@ -41,14 +38,15 @@ where N:    Clone + 'static,
       L::MapH: Clone + 'static,
       L::MapR: Clone + 'static,
 {
-    /// Run the pipeline against an `Edgy<(), Seed>` callback-iterator
-    /// of root seeds, with the given base `entry_heap: H` for EntryRoot's
-    /// initial state. Seeds are captured into the constructed
-    /// `SeedLift` at this moment and consumed during execution.
+    /// Run the pipeline against a `local_edgy::Edgy<(), Seed>`
+    /// callback-iterator of root seeds, with the given base
+    /// `entry_heap: H` for EntryRoot's initial state. Seeds are captured
+    /// into the constructed `SeedLift` at this moment and consumed
+    /// during execution.
     pub fn run<E>(
         &self,
         exec:       &E,
-        root_seeds: Edgy<(), Seed>,
+        root_seeds: <Local as Domain<()>>::Graph<Seed>,
         entry_heap: H,
     ) -> L::MapR
     where E: Executor<SeedNode<CurN>, L::MapR, Local,
@@ -80,7 +78,7 @@ where N:    Clone + 'static,
     }
 
     /// Sugar: wraps a `&[Seed]` slice into the canonical
-    /// `Edgy<(), Seed>` callback-iterator and calls `run`.
+    /// `local_edgy::Edgy<(), Seed>` callback-iterator and calls `run`.
     pub fn run_from_slice<E>(
         &self,
         exec:       &E,
@@ -92,7 +90,7 @@ where N:    Clone + 'static,
           <Local as Domain<SeedNode<CurN>>>::Graph<SeedNode<CurN>>: TreeOps<SeedNode<CurN>>,
     {
         let owned: Vec<Seed> = seeds.to_vec();
-        let es: Edgy<(), Seed> = graph::edgy_visit(
+        let es: local_edgy::Edgy<(), Seed> = local_edgy::edgy_visit(
             move |_: &(), cb: &mut dyn FnMut(&Seed)| {
                 for s in &owned { cb(s); }
             }

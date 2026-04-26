@@ -15,6 +15,10 @@ pub mod sugars_shared;
 pub mod sugars_local;
 pub(crate) mod gat_helpers;
 
+/// Deprecated alias for [`crate::stage2::Stage2Pipeline`]. The two
+/// historical Stage-2 types collapsed into a single
+/// `Stage2Pipeline<Base, L>`. Kept for one cycle to ease external
+/// migration; new code should refer to `Stage2Pipeline` directly.
 #[deprecated(note = "use Stage2Pipeline (single Stage-2 type for both treeish-rooted and seed-rooted)")]
 #[allow(type_alias_bounds)]
 pub type LiftedSeedPipeline<Base, L = IdentityLift> = crate::stage2::Stage2Pipeline<Base, L>;

@@ -3,7 +3,7 @@
 //! `LiftedSugarsShared<N, H, R>` is implemented for any pipeline
 //! yielding `(treeish, fold)` over `(N, H, R)` in Shared. Stage-1
 //! pipelines (`SeedPipeline`, `TreeishPipeline`) auto-lift first;
-//! `LiftedPipeline` composes at the tip. Each sugar method is written
+//! `Stage2Pipeline` composes at the tip. Each sugar method is written
 //! **once** and inherited by every implementer.
 //!
 //! Trait type parameters `N, H, R` are used instead of `Self::N`/
@@ -13,7 +13,7 @@
 
 #![allow(missing_docs)] // module-level: public items are per-domain/per-policy mirrors of documented primitives
 
-use crate::lifted::LiftedPipeline;
+use crate::stage2::Stage2Pipeline;
 use crate::treeish::TreeishPipeline;
 use crate::source::TreeishSource;
 use hylic::domain::{Domain, Shared};
@@ -121,7 +121,7 @@ where
 impl<N, H, R> LiftedSugarsShared<N, H, R> for TreeishPipeline<Shared, N, H, R>
 where N: Clone + 'static, H: Clone + 'static, R: Clone + 'static,
 {
-    type With<L2> = LiftedPipeline<Self, ComposedLift<IdentityLift, L2>>
+    type With<L2> = Stage2Pipeline<Self, ComposedLift<IdentityLift, L2>>
     where L2: Lift<Shared, N, H, R>,
           L2::N2:   Clone + 'static,
           L2::MapH: Clone + 'static,
@@ -139,9 +139,9 @@ where N: Clone + 'static, H: Clone + 'static, R: Clone + 'static,
     }
 }
 
-// ── Impl 2: LiftedPipeline — compose at the tip ────────────────
+// ── Impl 2: Stage2Pipeline — compose at the tip ────────────────
 
-impl<Base, L> LiftedSugarsShared<L::N2, L::MapH, L::MapR> for LiftedPipeline<Base, L>
+impl<Base, L> LiftedSugarsShared<L::N2, L::MapH, L::MapR> for Stage2Pipeline<Base, L>
 where Base: TreeishSource<Domain = Shared>,
       Shared: Domain<L::N2>,
       L: Lift<Shared, Base::N, Base::H, Base::R>,
@@ -149,7 +149,7 @@ where Base: TreeishSource<Domain = Shared>,
       L::MapH: Clone + 'static,
       L::MapR: Clone + 'static,
 {
-    type With<L2> = LiftedPipeline<Base, ComposedLift<L, L2>>
+    type With<L2> = Stage2Pipeline<Base, ComposedLift<L, L2>>
     where L2: Lift<Shared, L::N2, L::MapH, L::MapR>,
           L2::N2:   Clone + 'static,
           L2::MapH: Clone + 'static,

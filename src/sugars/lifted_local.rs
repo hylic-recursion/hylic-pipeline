@@ -5,12 +5,12 @@
 //! `use hylic::LiftedSugarsLocal`), users can call `.wrap_init(w)`,
 //! `.zipmap(m)`, `.map_r_bi(fwd, bwd)` directly on a
 //! `SeedPipeline<Local, …>`, `TreeishPipeline<Local, …>`, or
-//! `LiftedPipeline<…Local base…>` — no `.lift()` ceremony required
+//! `Stage2Pipeline<…Local base…>` — no `.lift()` ceremony required
 //! for Stage-1 types, no `_local` suffix clutter.
 
 #![allow(missing_docs)] // module-level: public items are per-domain/per-policy mirrors of documented primitives
 
-use crate::lifted::LiftedPipeline;
+use crate::stage2::Stage2Pipeline;
 use crate::treeish::TreeishPipeline;
 use crate::source::TreeishSource;
 use hylic::domain::{Domain, Local};
@@ -106,7 +106,7 @@ where
 impl<N, H, R> LiftedSugarsLocal<N, H, R> for TreeishPipeline<Local, N, H, R>
 where N: Clone + 'static, H: Clone + 'static, R: Clone + 'static,
 {
-    type With<L2> = LiftedPipeline<Self, ComposedLift<IdentityLift, L2>>
+    type With<L2> = Stage2Pipeline<Self, ComposedLift<IdentityLift, L2>>
     where L2: Lift<Local, N, H, R>,
           L2::N2:   Clone + 'static,
           L2::MapH: Clone + 'static,
@@ -124,9 +124,9 @@ where N: Clone + 'static, H: Clone + 'static, R: Clone + 'static,
     }
 }
 
-// ── Impl 2: LiftedPipeline — compose at the tip ────────────────
+// ── Impl 2: Stage2Pipeline — compose at the tip ────────────────
 
-impl<Base, L> LiftedSugarsLocal<L::N2, L::MapH, L::MapR> for LiftedPipeline<Base, L>
+impl<Base, L> LiftedSugarsLocal<L::N2, L::MapH, L::MapR> for Stage2Pipeline<Base, L>
 where Base: TreeishSource<Domain = Local>,
       Local: Domain<L::N2>,
       L: Lift<Local, Base::N, Base::H, Base::R>,
@@ -134,7 +134,7 @@ where Base: TreeishSource<Domain = Local>,
       L::MapH: Clone + 'static,
       L::MapR: Clone + 'static,
 {
-    type With<L2> = LiftedPipeline<Base, ComposedLift<L, L2>>
+    type With<L2> = Stage2Pipeline<Base, ComposedLift<L, L2>>
     where L2: Lift<Local, L::N2, L::MapH, L::MapR>,
           L2::N2:   Clone + 'static,
           L2::MapH: Clone + 'static,
