@@ -1,7 +1,8 @@
 //! The .lift() transition from Stage 1 to Stage 2.
 
 use std::sync::Arc;
-use crate::{SeedPipeline, LiftedSeedPipeline, SeedSugarsShared};
+use crate::{SeedPipeline, SeedSugarsShared};
+use crate::stage2::Stage2Pipeline;
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
 use hylic::graph::edgy_visit;
@@ -20,7 +21,7 @@ fn basic_pipeline() -> SeedPipeline<hylic::domain::Shared, u64, u64, u64, u64> {
 
 #[test]
 fn lift_produces_identity_lifted_pipeline() {
-    let p: LiftedSeedPipeline<SeedPipeline<hylic::domain::Shared, u64, u64, u64, u64>, IdentityLift> = basic_pipeline().lift();
+    let p: Stage2Pipeline<SeedPipeline<hylic::domain::Shared, u64, u64, u64, u64>, IdentityLift> = basic_pipeline().lift();
     let r = p.run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
     assert_eq!(r, 6);
 }

@@ -1,13 +1,14 @@
 //! Nameability — pipeline types store cleanly as struct fields and
 //! type aliases. Proves the Arc-erasure claim via std::any::type_name.
 
-use crate::{SeedPipeline, LiftedPipeline};
+use crate::SeedPipeline;
+use crate::stage2::Stage2Pipeline;
 use hylic::domain::Shared;
 use hylic::ops::{ComposedLift, IdentityLift, ShapeLift};
 
 type MyBasePipeline = SeedPipeline<hylic::domain::Shared, u64, u64, u64, u64>;
 
-type MyTransformedPipeline = LiftedPipeline<
+type MyTransformedPipeline = Stage2Pipeline<
     SeedPipeline<hylic::domain::Shared, u64, u64, u64, u64>,
     ComposedLift<IdentityLift, ShapeLift<Shared, u64, u64, u64, u64, u64, (u64, bool)>>,
 >;
@@ -29,9 +30,7 @@ fn pipeline_types_name_and_store() {
     assert!(base_name.contains("SeedPipeline"));
     assert!(base_name.contains("u64"));
 
-    // Name the transformed pipeline type. After the seed-pipeline-
-    // unification, `LiftedPipeline` is a deprecated alias for
-    // `Stage2Pipeline`; `type_name` reports the alias target.
+    // Name the transformed pipeline type — the unified Stage-2 form.
     let transformed_name = std::any::type_name::<MyTransformedPipeline>();
     assert!(transformed_name.contains("Stage2Pipeline"));
     assert!(transformed_name.contains("ComposedLift"));
