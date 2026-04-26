@@ -33,6 +33,7 @@ pub mod lifted;
 pub mod lifted_seed;
 pub mod owned;
 pub mod sugars;
+pub mod stage2;
 
 #[cfg(test)]
 mod tests;
@@ -55,3 +56,4 @@ pub use sugars::{
     LiftedSugarsShared, LiftedSugarsLocal,
 };
 pub use hylic::ops::SeedNode;
+pub use stage2::{Wrap, Identity, SeedWrap, Stage2Base};
