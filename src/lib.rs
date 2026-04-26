@@ -5,7 +5,7 @@
 //!   - Two Stage-1 pipeline typestates: [`SeedPipeline`], [`TreeishPipeline`]
 //!   - Two Stage-2 pipeline typestates: [`LiftedPipeline`] (from TreeishPipeline;
 //!     chain over `N`) and [`LiftedSeedPipeline`] (from SeedPipeline; chain over
-//!     `LiftedNode<N>` — see the Option-B design in
+//!     `SeedNode<N>` — see the Option-B design in
 //!     `KB/.plans/project-entry-refactor/`).
 //!   - One out-of-band one-shot pipeline: [`OwnedPipeline`]
 //!   - Source interface traits: [`TreeishSource`], [`PipelineSourceOnce`]
@@ -54,4 +54,4 @@ pub use sugars::{
     TreeishSugarsShared, TreeishSugarsLocal,
     LiftedSugarsShared, LiftedSugarsLocal,
 };
-pub use hylic::ops::LiftedNode;
+pub use hylic::ops::SeedNode;

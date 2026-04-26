@@ -1,6 +1,6 @@
 //! ExplainerDescribe: streaming per-node trace emission with
 //! transparent R. Under Option B the chain is typed at
-//! `LiftedNode<N>`; Entry is a first-class value of the node type.
+//! `SeedNode<N>`; Entry is a first-class value of the node type.
 
 use std::sync::{Arc, Mutex};
 use crate::SeedPipeline;
@@ -8,7 +8,7 @@ use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
 use hylic::domain::Shared;
 use hylic::graph::edgy_visit;
-use hylic::ops::LiftedNode;
+use hylic::ops::SeedNode;
 use hylic::prelude::trace_fold_compact;
 
 fn basic_pipeline() -> SeedPipeline<Shared, u64, u64, u64, u64> {
@@ -30,11 +30,11 @@ fn explainer_describe_streams_per_node_and_preserves_r() {
     let captured_for_emit = captured.clone();
 
     // trace_fold_compact renders `heap.node`; at the chain's
-    // seed-closed level the node type is LiftedNode<u64>.
+    // seed-closed level the node type is SeedNode<u64>.
     let r: u64 = basic_pipeline()
         .lift()
         .explain_describe(
-            trace_fold_compact::<LiftedNode<u64>, u64, u64>,
+            trace_fold_compact::<SeedNode<u64>, u64, u64>,
             move |s: &str| {
                 captured_for_emit.lock().unwrap().push(s.to_string());
             },

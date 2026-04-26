@@ -8,7 +8,7 @@ use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
 use hylic::graph::edgy_visit;
 use hylic::prelude::{ExplainerHeap, ExplainerResult};
-use hylic::ops::LiftedNode;
+use hylic::ops::SeedNode;
 
 fn basic() -> SeedPipeline<hylic::domain::Shared, u64, u64, u64, u64> {
     let ch: Arc<Vec<Vec<u64>>> = Arc::new(vec![vec![1, 2], vec![3], vec![], vec![]]);
@@ -28,14 +28,14 @@ fn explainer_early_vs_late_same_orig_result() {
     let r_early = basic()
         .lift()
         .explain()
-        .zipmap(|r: &ExplainerResult<LiftedNode<u64>, u64, u64>| r.orig_result * 2)
+        .zipmap(|r: &ExplainerResult<SeedNode<u64>, u64, u64>| r.orig_result * 2)
         .run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
     // Base R = 0+1+2+3 = 6. Zipmap pairs (ExplainerResult{6, …}, 12).
     assert_eq!(r_early.0.orig_result, 6);
     assert_eq!(r_early.1, 12);
     assert!(!r_early.0.heap.transitions.is_empty());
 
-    let r_late: ExplainerResult<LiftedNode<u64>, u64, (u64, u64)> = basic()
+    let r_late: ExplainerResult<SeedNode<u64>, u64, (u64, u64)> = basic()
         .lift()
         .zipmap(|r: &u64| r * 2)
         .explain()
@@ -52,15 +52,15 @@ fn explainer_early_vs_late_same_orig_result() {
 #[test]
 fn nested_explainers_compose() {
     // Two Explainers in one chain. Each wraps the preceding fold's
-    // output. Under Option B the chain's N is LiftedNode<u64> from
+    // output. Under Option B the chain's N is SeedNode<u64> from
     // .lift() onward; every explainer instance works at that N.
     //
-    // inner MapH = ExplainerHeap<LiftedNode<u64>, u64, ExplainerResult<LiftedNode<u64>, u64, u64>>
-    // inner MapR = ExplainerResult<LiftedNode<u64>, u64, u64>
-    // outer MapR = ExplainerResult<LiftedNode<u64>, inner MapH, inner MapR>
-    type InnerMapH = ExplainerHeap<LiftedNode<u64>, u64, ExplainerResult<LiftedNode<u64>, u64, u64>>;
-    type InnerMapR = ExplainerResult<LiftedNode<u64>, u64, u64>;
-    type OuterMapR = ExplainerResult<LiftedNode<u64>, InnerMapH, InnerMapR>;
+    // inner MapH = ExplainerHeap<SeedNode<u64>, u64, ExplainerResult<SeedNode<u64>, u64, u64>>
+    // inner MapR = ExplainerResult<SeedNode<u64>, u64, u64>
+    // outer MapR = ExplainerResult<SeedNode<u64>, inner MapH, inner MapR>
+    type InnerMapH = ExplainerHeap<SeedNode<u64>, u64, ExplainerResult<SeedNode<u64>, u64, u64>>;
+    type InnerMapR = ExplainerResult<SeedNode<u64>, u64, u64>;
+    type OuterMapR = ExplainerResult<SeedNode<u64>, InnerMapH, InnerMapR>;
 
     let r: OuterMapR = basic()
         .lift()
@@ -76,7 +76,7 @@ fn nested_explainers_compose() {
 
 #[test]
 fn explainer_trace_structure_walks_tree() {
-    let r: ExplainerResult<LiftedNode<u64>, u64, u64> = basic()
+    let r: ExplainerResult<SeedNode<u64>, u64, u64> = basic()
         .lift()
         .explain()
         .run_from_slice(

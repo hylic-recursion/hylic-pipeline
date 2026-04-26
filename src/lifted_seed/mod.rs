@@ -1,10 +1,10 @@
 //! LiftedSeedPipeline — Stage 2 of the SeedPipeline lifecycle.
 //!
 //! Distinct from `LiftedPipeline` because its chain is typed at
-//! `LiftedNode<N>` rather than `N`. At `.run` time, `SeedLift` is
+//! `SeedNode<N>` rather than `N`. At `.run` time, `SeedLift` is
 //! assembled from the `SeedPipeline`'s `grow` and user-supplied
 //! `root_seeds` + `entry_heap`, and composed as the first lift in
-//! the chain. Everything above it operates on `LiftedNode<N>` —
+//! the chain. Everything above it operates on `SeedNode<N>` —
 //! `Entry` is a first-class value of the node type.
 
 use hylic::ops::IdentityLift;
@@ -18,7 +18,7 @@ pub(crate) mod gat_helpers;
 
 // ANCHOR: lifted_seed_pipeline_struct
 /// Stage-2 typestate pipeline rooted at a `SeedPipeline`. Wraps the
-/// base with a lift chain `L` typed at `LiftedNode<N>`. `SeedLift` is
+/// base with a lift chain `L` typed at `SeedNode<N>`. `SeedLift` is
 /// NOT yet constructed — it's assembled at `.run` time when the user
 /// supplies the root seeds and entry heap.
 #[must_use]

@@ -5,7 +5,7 @@ use crate::{SeedPipeline, SeedSugarsShared};
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::graph::edgy_visit;
 use hylic::prelude::ExplainerResult;
-use hylic::ops::LiftedNode;
+use hylic::ops::SeedNode;
 
 fn tree_pipeline() -> SeedPipeline<hylic::domain::Shared, u64, u64, u64, u64> {
     let ch: Arc<Vec<Vec<u64>>> = Arc::new(vec![vec![1, 2], vec![3], vec![], vec![]]);
@@ -20,7 +20,7 @@ fn tree_pipeline() -> SeedPipeline<hylic::domain::Shared, u64, u64, u64, u64> {
 
 #[test]
 fn full_chain_with_explainer_fused() {
-    let result: ExplainerResult<LiftedNode<u64>, u64, (u64, bool)> = tree_pipeline()
+    let result: ExplainerResult<SeedNode<u64>, u64, (u64, bool)> = tree_pipeline()
         .filter_seeds(|s: &u64| *s != 2)                                   // Stage 1
         .lift()                                                             // ─ transition
         .wrap_init(|n: &u64, orig: &dyn Fn(&u64) -> u64| orig(n) + 1)      // Stage 2
@@ -43,7 +43,7 @@ fn full_chain_with_explainer_fused() {
 fn full_chain_with_explainer_funnel() {
     use hylic::exec::funnel;
 
-    let result: ExplainerResult<LiftedNode<u64>, u64, (u64, bool)> = tree_pipeline()
+    let result: ExplainerResult<SeedNode<u64>, u64, (u64, bool)> = tree_pipeline()
         .filter_seeds(|s: &u64| *s != 2)
         .lift()
         .wrap_init(|n: &u64, orig: &dyn Fn(&u64) -> u64| orig(n) + 1)

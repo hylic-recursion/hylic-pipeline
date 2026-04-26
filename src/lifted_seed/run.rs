@@ -7,15 +7,15 @@
 //! ```text
 //! base.fuse(grow, seeds_from_node)                   — treeish<N>
 //!               │
-//!               │ SeedLift::apply  (N → LiftedNode<N>)
+//!               │ SeedLift::apply  (N → SeedNode<N>)
 //!               ▼
-//!       (treeish<LiftedNode<N>>,  fold<LiftedNode<N>, H, R>)
+//!       (treeish<SeedNode<N>>,  fold<SeedNode<N>, H, R>)
 //!               │
 //!               │ pre_lift.apply  (the stored user chain)
 //!               ▼
 //!       (treeish<L::N2>,          fold<L::N2, L::MapH, L::MapR>)
 //!               │
-//!               │ exec.run(&f, &t, &LiftedNode::entry())
+//!               │ exec.run(&f, &t, &SeedNode::entry_root())
 //!               ▼
 //!               L::MapR
 //! ```
@@ -25,8 +25,8 @@ use std::sync::Arc;
 use hylic::domain::{Domain, Shared};
 use hylic::exec::Executor;
 use hylic::graph::{self, Edgy};
-use hylic::ops::{Lift, LiftedNode, SeedLift, ShapeCapable, TreeOps};
-use hylic::ops::lifted_node_internal as ln_int;
+use hylic::ops::{Lift, SeedNode, SeedLift, ShapeCapable, TreeOps};
+use hylic::ops::seed_node_internal as sn_int;
 
 use super::LiftedSeedPipeline;
 use super::super::seed::SeedPipeline;
@@ -42,11 +42,11 @@ where N:    Clone + Send + Sync + 'static,
       H:    Clone + Send + Sync + 'static,
       R:    Clone + Send + Sync + 'static,
       CurN: Clone + Send + Sync + 'static,
-      Shared: Domain<N> + Domain<LiftedNode<N>> + Domain<LiftedNode<CurN>> + ShapeCapable<N>,
+      Shared: Domain<N> + Domain<SeedNode<N>> + Domain<SeedNode<CurN>> + ShapeCapable<N>,
       <Shared as Domain<N>>::Grow<Seed, N>:  Clone,
       <Shared as Domain<N>>::Graph<Seed>:    Clone,
       <Shared as Domain<N>>::Fold<H, R>:     Clone,
-      L: Lift<Shared, LiftedNode<N>, H, R, N2 = LiftedNode<CurN>>,
+      L: Lift<Shared, SeedNode<N>, H, R, N2 = SeedNode<CurN>>,
       L::MapH: Clone + Send + Sync + 'static,
       L::MapR: Clone + Send + Sync + 'static,
 {
@@ -60,9 +60,9 @@ where N:    Clone + Send + Sync + 'static,
         root_seeds: Edgy<(), Seed>,
         entry_heap: H,
     ) -> L::MapR
-    where E: Executor<LiftedNode<CurN>, L::MapR, Shared,
-                      <Shared as Domain<LiftedNode<CurN>>>::Graph<LiftedNode<CurN>>>,
-          <Shared as Domain<LiftedNode<CurN>>>::Graph<LiftedNode<CurN>>: TreeOps<LiftedNode<CurN>>,
+    where E: Executor<SeedNode<CurN>, L::MapR, Shared,
+                      <Shared as Domain<SeedNode<CurN>>>::Graph<SeedNode<CurN>>>,
+          <Shared as Domain<SeedNode<CurN>>>::Graph<SeedNode<CurN>>: TreeOps<SeedNode<CurN>>,
     {
         let grow_abs = self.base.grow.clone();
         let grow_arc: Arc<dyn Fn(&Seed) -> N + Send + Sync> =
@@ -83,7 +83,7 @@ where N:    Clone + Send + Sync + 'static,
             shared_concrete_as_fold::<N, H, R>(base_fold_concrete),
             |lt, lf| {
                 self.pre_lift.apply(lt, lf, |tree_final, fold_final| {
-                    exec.run(&fold_final, &tree_final, &ln_int::entry::<CurN>())
+                    exec.run(&fold_final, &tree_final, &sn_int::entry_root::<CurN>())
                 })
             },
         )
@@ -97,9 +97,9 @@ where N:    Clone + Send + Sync + 'static,
         seeds:      &[Seed],
         entry_heap: H,
     ) -> L::MapR
-    where E: Executor<LiftedNode<CurN>, L::MapR, Shared,
-                      <Shared as Domain<LiftedNode<CurN>>>::Graph<LiftedNode<CurN>>>,
-          <Shared as Domain<LiftedNode<CurN>>>::Graph<LiftedNode<CurN>>: TreeOps<LiftedNode<CurN>>,
+    where E: Executor<SeedNode<CurN>, L::MapR, Shared,
+                      <Shared as Domain<SeedNode<CurN>>>::Graph<SeedNode<CurN>>>,
+          <Shared as Domain<SeedNode<CurN>>>::Graph<SeedNode<CurN>>: TreeOps<SeedNode<CurN>>,
     {
         let owned: Vec<Seed> = seeds.to_vec();
         let es: Edgy<(), Seed> = graph::edgy_visit(

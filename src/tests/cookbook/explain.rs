@@ -7,7 +7,7 @@ use hylic::exec::funnel;
 use hylic::domain::Shared;
 use hylic::graph::edgy_visit;
 use hylic::prelude::{ExplainerResult, trace_fold_compact};
-use hylic::ops::LiftedNode;
+use hylic::ops::SeedNode;
 
 fn basic() -> SeedPipeline<Shared, u64, u64, u64, u64> {
     let ch: Arc<Vec<Vec<u64>>> = Arc::new(vec![vec![1, 2], vec![3], vec![], vec![]]);
@@ -20,7 +20,7 @@ fn basic() -> SeedPipeline<Shared, u64, u64, u64, u64> {
 
 #[test]
 fn explainer_lift_records_full_trace() {
-    let r: ExplainerResult<LiftedNode<u64>, u64, u64> = basic()
+    let r: ExplainerResult<SeedNode<u64>, u64, u64> = basic()
         .lift()
         .explain()
         .run_from_slice(
@@ -40,7 +40,7 @@ fn explainer_describe_streams_per_node() {
     let r: u64 = basic()
         .lift()
         .explain_describe(
-            trace_fold_compact::<LiftedNode<u64>, u64, u64>,
+            trace_fold_compact::<SeedNode<u64>, u64, u64>,
             move |s: &str| {
                 captured_for_emit.lock().unwrap().push(s.to_string());
             },

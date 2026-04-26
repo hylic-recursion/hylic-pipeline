@@ -7,7 +7,7 @@ use crate::{SeedPipeline, SeedSugarsShared};
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
 use hylic::graph::edgy_visit;
-use hylic::ops::LiftedNode;
+use hylic::ops::SeedNode;
 use hylic::prelude::ExplainerResult;
 
 /// Flat adjacency: 0 → {1, 2}; 1 → {3}; 2, 3 leaves.
@@ -65,10 +65,10 @@ fn t2_full_coalgebra_and_algebra_shape_shift() {
     // Stage 1 shape-shift, then lift, then every Stage-2 sugar,
     // ending with Explainer. Assert the ExplainerResult comes
     // through with the full shape-shifted types.
-    // Under Option B, the seed chain's N is LiftedNode<BoxedU64> after
-    // .lift(). Explainer's result therefore carries LiftedNode<BoxedU64>
+    // Under Option B, the seed chain's N is SeedNode<BoxedU64> after
+    // .lift(). Explainer's result therefore carries SeedNode<BoxedU64>
     // in its heap.node field.
-    let result: ExplainerResult<LiftedNode<BoxedU64>, u64, i128> = basic_pipeline()
+    let result: ExplainerResult<SeedNode<BoxedU64>, u64, i128> = basic_pipeline()
         .map_node_bi(
             |n: &u64| BoxedU64(*n),
             |b: &BoxedU64| b.0,

@@ -1,19 +1,19 @@
 //! Stage-2 primitives on `LiftedSeedPipeline`, domain-generic.
 //!
 //! The single load-bearing line is in the impl's where-clause:
-//! `L: Lift<D, LiftedNode<N>, H, R>`. Everything else is ordinary
+//! `L: Lift<D, SeedNode<N>, H, R>`. Everything else is ordinary
 //! plumbing for seedless Stage-2 composition.
 
 use hylic::domain::Domain;
-use hylic::ops::{ComposedLift, Lift, LiftedNode};
+use hylic::ops::{ComposedLift, Lift, SeedNode};
 use super::LiftedSeedPipeline;
 use super::super::seed::SeedPipeline;
 
 impl<D, N, Seed, H, R, L> LiftedSeedPipeline<SeedPipeline<D, N, Seed, H, R>, L>
-where D: Domain<N> + Domain<LiftedNode<N>> + Domain<L::N2>,
+where D: Domain<N> + Domain<SeedNode<N>> + Domain<L::N2>,
       N: Clone + 'static, Seed: Clone + 'static,
       H: Clone + 'static, R: Clone + 'static,
-      L: Lift<D, LiftedNode<N>, H, R>,
+      L: Lift<D, SeedNode<N>, H, R>,
       L::N2:   Clone + 'static,
       L::MapH: Clone + 'static,
       L::MapR: Clone + 'static,

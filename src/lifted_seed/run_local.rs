@@ -9,8 +9,8 @@ use std::rc::Rc;
 use hylic::domain::{Domain, Local};
 use hylic::exec::Executor;
 use hylic::graph::{self, Edgy};
-use hylic::ops::{Lift, LiftedNode, SeedLift, ShapeCapable, TreeOps};
-use hylic::ops::lifted_node_internal as ln_int;
+use hylic::ops::{Lift, SeedNode, SeedLift, ShapeCapable, TreeOps};
+use hylic::ops::seed_node_internal as sn_int;
 
 use super::LiftedSeedPipeline;
 use super::super::seed::SeedPipeline;
@@ -31,11 +31,11 @@ where N:    Clone + 'static,
       H:    Clone + 'static,
       R:    Clone + 'static,
       CurN: Clone + 'static,
-      Local: Domain<N> + Domain<LiftedNode<N>> + Domain<LiftedNode<CurN>> + ShapeCapable<N>,
+      Local: Domain<N> + Domain<SeedNode<N>> + Domain<SeedNode<CurN>> + ShapeCapable<N>,
       <Local as Domain<N>>::Grow<Seed, N>:  Clone,
       <Local as Domain<N>>::Graph<Seed>:    Clone,
       <Local as Domain<N>>::Fold<H, R>:     Clone,
-      L: Lift<Local, LiftedNode<N>, H, R, N2 = LiftedNode<CurN>>,
+      L: Lift<Local, SeedNode<N>, H, R, N2 = SeedNode<CurN>>,
       L::MapH: Clone + 'static,
       L::MapR: Clone + 'static,
 {
@@ -49,9 +49,9 @@ where N:    Clone + 'static,
         root_seeds: Edgy<(), Seed>,
         entry_heap: H,
     ) -> L::MapR
-    where E: Executor<LiftedNode<CurN>, L::MapR, Local,
-                      <Local as Domain<LiftedNode<CurN>>>::Graph<LiftedNode<CurN>>>,
-          <Local as Domain<LiftedNode<CurN>>>::Graph<LiftedNode<CurN>>: TreeOps<LiftedNode<CurN>>,
+    where E: Executor<SeedNode<CurN>, L::MapR, Local,
+                      <Local as Domain<SeedNode<CurN>>>::Graph<SeedNode<CurN>>>,
+          <Local as Domain<SeedNode<CurN>>>::Graph<SeedNode<CurN>>: TreeOps<SeedNode<CurN>>,
     {
         let grow_abs = self.base.grow.clone();
         let grow_rc: Rc<dyn Fn(&Seed) -> N> = local_grow_as_rc::<Seed, N>(grow_abs);
@@ -71,7 +71,7 @@ where N:    Clone + 'static,
             local_concrete_as_fold::<N, H, R>(base_fold_concrete),
             |lt, lf| {
                 self.pre_lift.apply(lt, lf, |tree_final, fold_final| {
-                    exec.run(&fold_final, &tree_final, &ln_int::entry::<CurN>())
+                    exec.run(&fold_final, &tree_final, &sn_int::entry_root::<CurN>())
                 })
             },
         )
@@ -85,9 +85,9 @@ where N:    Clone + 'static,
         seeds:      &[Seed],
         entry_heap: H,
     ) -> L::MapR
-    where E: Executor<LiftedNode<CurN>, L::MapR, Local,
-                      <Local as Domain<LiftedNode<CurN>>>::Graph<LiftedNode<CurN>>>,
-          <Local as Domain<LiftedNode<CurN>>>::Graph<LiftedNode<CurN>>: TreeOps<LiftedNode<CurN>>,
+    where E: Executor<SeedNode<CurN>, L::MapR, Local,
+                      <Local as Domain<SeedNode<CurN>>>::Graph<SeedNode<CurN>>>,
+          <Local as Domain<SeedNode<CurN>>>::Graph<SeedNode<CurN>>: TreeOps<SeedNode<CurN>>,
     {
         let owned: Vec<Seed> = seeds.to_vec();
         let es: Edgy<(), Seed> = graph::edgy_visit(

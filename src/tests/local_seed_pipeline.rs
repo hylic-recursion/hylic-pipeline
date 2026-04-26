@@ -5,7 +5,7 @@
 use std::rc::Rc;
 use crate::SeedPipeline;
 use hylic::domain::{local, Local};
-use hylic::ops::{LiftedNode};
+use hylic::ops::{SeedNode};
 use hylic::prelude::{ExplainerResult, SeedExplainerResult};
 
 fn basic() -> SeedPipeline<Local, u64, u64, u64, u64> {
@@ -73,17 +73,17 @@ fn local_map_n_bi_stage2() {
 
 #[test]
 fn local_explain_projects_via_seed_explainer_result() {
-    let raw: ExplainerResult<LiftedNode<u64>, u64, u64> = basic()
+    let raw: ExplainerResult<SeedNode<u64>, u64, u64> = basic()
         .lift()
         .explain()
         .run_from_slice(&local::FUSED, &[0u64], 0u64);
 
-    // Raw chain-tip carries LiftedNode<N>.
+    // Raw chain-tip carries SeedNode<N>.
     assert_eq!(raw.orig_result, 6);
-    assert!(raw.heap.node.is_entry());
+    assert!(raw.heap.node.is_entry_root());
     assert_eq!(raw.heap.transitions.len(), 1); // one root seed
 
-    // Sealed projection: N-typed view, no LiftedNode.
+    // Sealed projection: N-typed view, no SeedNode.
     let sealed: SeedExplainerResult<u64, u64, u64> = SeedExplainerResult::from_lifted(raw);
     assert_eq!(sealed.entry_initial_heap, 0);
     assert_eq!(sealed.entry_working_heap, 6);
@@ -91,7 +91,7 @@ fn local_explain_projects_via_seed_explainer_result() {
     assert_eq!(sealed.roots.len(), 1);
 
     let root = &sealed.roots[0];
-    assert_eq!(root.heap.node, 0); // plain u64, no LiftedNode wrap
+    assert_eq!(root.heap.node, 0); // plain u64, no SeedNode wrap
     assert_eq!(root.orig_result, 6);
     assert_eq!(root.heap.transitions.len(), 2); // children 1 and 2
 }

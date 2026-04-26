@@ -7,7 +7,7 @@
 //! `with_seeded` were removed by the Option-B pivot.
 
 use hylic::domain::Domain;
-use hylic::ops::{IdentityLift, LiftedNode, ShapeCapable};
+use hylic::ops::{IdentityLift, SeedNode, ShapeCapable};
 use super::SeedPipeline;
 use super::super::lifted_seed::LiftedSeedPipeline;
 use super::super::source::TreeishSource;
@@ -43,11 +43,11 @@ where D: ShapeCapable<N>,
 // ── Transition to Stage 2 ──────────────────────────────
 
 impl<D, N, Seed, H, R> SeedPipeline<D, N, Seed, H, R>
-where D: Domain<N> + Domain<LiftedNode<N>>,
+where D: Domain<N> + Domain<SeedNode<N>>,
       N: 'static, Seed: 'static, H: 'static, R: 'static,
 {
     /// Transition to Stage 2. Produces a `LiftedSeedPipeline` whose
-    /// chain is typed at `LiftedNode<N>`. SeedLift is NOT yet
+    /// chain is typed at `SeedNode<N>`. SeedLift is NOT yet
     /// constructed — it's assembled at `.run` time from user-supplied
     /// `root_seeds` and `entry_heap`. See the Option-B design in
     /// `KB/.plans/project-entry-refactor/`.

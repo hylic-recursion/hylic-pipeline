@@ -10,8 +10,8 @@
 use std::rc::Rc;
 
 use hylic::domain::{Domain, Local};
-use hylic::ops::{ComposedLift, Lift, LiftedNode, ShapeLift};
-use hylic::ops::lifted_node_internal::{self as ln_int, LiftedNodeInner};
+use hylic::ops::{ComposedLift, Lift, SeedNode, ShapeLift};
+use hylic::ops::seed_node_internal::{self as sn_int, SeedNodeInner};
 use hylic::prelude::explainer::{ExplainerHeap, ExplainerResult};
 
 use super::LiftedSeedPipeline;
@@ -23,8 +23,8 @@ where N:    Clone + 'static,
       H:    Clone + 'static,
       R:    Clone + 'static,
       CurN: Clone + 'static,
-      Local: Domain<N> + Domain<LiftedNode<N>> + Domain<LiftedNode<CurN>>,
-      L:    Lift<Local, LiftedNode<N>, H, R, N2 = LiftedNode<CurN>>,
+      Local: Domain<N> + Domain<SeedNode<N>> + Domain<SeedNode<CurN>>,
+      L:    Lift<Local, SeedNode<N>, H, R, N2 = SeedNode<CurN>>,
       L::MapH: Clone + 'static,
       L::MapR: Clone + 'static,
 {
@@ -33,61 +33,61 @@ where N:    Clone + 'static,
     pub fn wrap_init<W>(self, user_wrap: W)
         -> LiftedSeedPipeline<
             SeedPipeline<Local, N, Seed, H, R>,
-            ComposedLift<L, ShapeLift<Local, LiftedNode<CurN>, L::MapH, L::MapR,
-                                              LiftedNode<CurN>, L::MapH, L::MapR>>,
+            ComposedLift<L, ShapeLift<Local, SeedNode<CurN>, L::MapH, L::MapR,
+                                              SeedNode<CurN>, L::MapH, L::MapR>>,
         >
     where W: Fn(&CurN, &dyn Fn(&CurN) -> L::MapH) -> L::MapH + 'static,
     {
         let user = Rc::new(user_wrap);
-        let lifted_w = move |ln: &LiftedNode<CurN>,
-                             orig: &dyn Fn(&LiftedNode<CurN>) -> L::MapH| -> L::MapH
+        let lifted_w = move |ln: &SeedNode<CurN>,
+                             orig: &dyn Fn(&SeedNode<CurN>) -> L::MapH| -> L::MapH
         {
-            match ln_int::inner(ln) {
-                LiftedNodeInner::Node(n) => {
+            match sn_int::inner(ln) {
+                SeedNodeInner::Node(n) => {
                     let user = user.clone();
-                    user(n, &|inner: &CurN| orig(&ln_int::node(inner.clone())))
+                    user(n, &|inner: &CurN| orig(&sn_int::node(inner.clone())))
                 }
-                LiftedNodeInner::Entry => orig(ln),
+                SeedNodeInner::EntryRoot => orig(ln),
             }
         };
-        self.then_lift(Local::wrap_init_lift::<LiftedNode<CurN>, L::MapH, L::MapR, _>(lifted_w))
+        self.then_lift(Local::wrap_init_lift::<SeedNode<CurN>, L::MapH, L::MapR, _>(lifted_w))
     }
 
     pub fn memoize_by<K, KeyFn>(self, key_fn: KeyFn)
         -> LiftedSeedPipeline<
             SeedPipeline<Local, N, Seed, H, R>,
-            ComposedLift<L, ShapeLift<Local, LiftedNode<CurN>, L::MapH, L::MapR,
-                                              LiftedNode<CurN>, L::MapH, L::MapR>>,
+            ComposedLift<L, ShapeLift<Local, SeedNode<CurN>, L::MapH, L::MapR,
+                                              SeedNode<CurN>, L::MapH, L::MapR>>,
         >
     where K: Eq + std::hash::Hash + Clone + 'static,
           KeyFn: Fn(&CurN) -> K + 'static,
     {
         let key = Rc::new(key_fn);
-        let lifted_key = move |ln: &LiftedNode<CurN>| -> Option<K> {
-            match ln_int::inner(ln) {
-                LiftedNodeInner::Node(n) => Some((key)(n)),
-                LiftedNodeInner::Entry   => None,
+        let lifted_key = move |ln: &SeedNode<CurN>| -> Option<K> {
+            match sn_int::inner(ln) {
+                SeedNodeInner::Node(n) => Some((key)(n)),
+                SeedNodeInner::EntryRoot   => None,
             }
         };
-        self.then_lift(Local::memoize_by_lift::<LiftedNode<CurN>, L::MapH, L::MapR, Option<K>, _>(lifted_key))
+        self.then_lift(Local::memoize_by_lift::<SeedNode<CurN>, L::MapH, L::MapR, Option<K>, _>(lifted_key))
     }
 
     pub fn filter_edges<P>(self, pred: P)
         -> LiftedSeedPipeline<
             SeedPipeline<Local, N, Seed, H, R>,
-            ComposedLift<L, ShapeLift<Local, LiftedNode<CurN>, L::MapH, L::MapR,
-                                              LiftedNode<CurN>, L::MapH, L::MapR>>,
+            ComposedLift<L, ShapeLift<Local, SeedNode<CurN>, L::MapH, L::MapR,
+                                              SeedNode<CurN>, L::MapH, L::MapR>>,
         >
     where P: Fn(&CurN) -> bool + 'static,
     {
         let p = Rc::new(pred);
-        let lifted_p = move |ln: &LiftedNode<CurN>| -> bool {
-            match ln_int::inner(ln) {
-                LiftedNodeInner::Node(n) => (p)(n),
-                LiftedNodeInner::Entry   => true,
+        let lifted_p = move |ln: &SeedNode<CurN>| -> bool {
+            match sn_int::inner(ln) {
+                SeedNodeInner::Node(n) => (p)(n),
+                SeedNodeInner::EntryRoot   => true,
             }
         };
-        self.then_lift(Local::filter_edges_lift::<LiftedNode<CurN>, L::MapH, L::MapR, _>(lifted_p))
+        self.then_lift(Local::filter_edges_lift::<SeedNode<CurN>, L::MapH, L::MapR, _>(lifted_p))
     }
 
     // ── N-free sugars: applied uniformly ──────────────────
@@ -95,48 +95,48 @@ where N:    Clone + 'static,
     pub fn wrap_accumulate<W>(self, wrapper: W)
         -> LiftedSeedPipeline<
             SeedPipeline<Local, N, Seed, H, R>,
-            ComposedLift<L, ShapeLift<Local, LiftedNode<CurN>, L::MapH, L::MapR,
-                                              LiftedNode<CurN>, L::MapH, L::MapR>>,
+            ComposedLift<L, ShapeLift<Local, SeedNode<CurN>, L::MapH, L::MapR,
+                                              SeedNode<CurN>, L::MapH, L::MapR>>,
         >
     where W: Fn(&mut L::MapH, &L::MapR, &dyn Fn(&mut L::MapH, &L::MapR)) + 'static,
     {
-        self.then_lift(Local::wrap_accumulate_lift::<LiftedNode<CurN>, L::MapH, L::MapR, _>(wrapper))
+        self.then_lift(Local::wrap_accumulate_lift::<SeedNode<CurN>, L::MapH, L::MapR, _>(wrapper))
     }
 
     pub fn wrap_finalize<W>(self, wrapper: W)
         -> LiftedSeedPipeline<
             SeedPipeline<Local, N, Seed, H, R>,
-            ComposedLift<L, ShapeLift<Local, LiftedNode<CurN>, L::MapH, L::MapR,
-                                              LiftedNode<CurN>, L::MapH, L::MapR>>,
+            ComposedLift<L, ShapeLift<Local, SeedNode<CurN>, L::MapH, L::MapR,
+                                              SeedNode<CurN>, L::MapH, L::MapR>>,
         >
     where W: Fn(&L::MapH, &dyn Fn(&L::MapH) -> L::MapR) -> L::MapR + 'static,
     {
-        self.then_lift(Local::wrap_finalize_lift::<LiftedNode<CurN>, L::MapH, L::MapR, _>(wrapper))
+        self.then_lift(Local::wrap_finalize_lift::<SeedNode<CurN>, L::MapH, L::MapR, _>(wrapper))
     }
 
     pub fn zipmap<Extra, M>(self, mapper: M)
         -> LiftedSeedPipeline<
             SeedPipeline<Local, N, Seed, H, R>,
-            ComposedLift<L, ShapeLift<Local, LiftedNode<CurN>, L::MapH, L::MapR,
-                                              LiftedNode<CurN>, L::MapH, (L::MapR, Extra)>>,
+            ComposedLift<L, ShapeLift<Local, SeedNode<CurN>, L::MapH, L::MapR,
+                                              SeedNode<CurN>, L::MapH, (L::MapR, Extra)>>,
         >
     where Extra: Clone + 'static,
           M: Fn(&L::MapR) -> Extra + 'static,
     {
-        self.then_lift(Local::zipmap_lift::<LiftedNode<CurN>, L::MapH, L::MapR, Extra, _>(mapper))
+        self.then_lift(Local::zipmap_lift::<SeedNode<CurN>, L::MapH, L::MapR, Extra, _>(mapper))
     }
 
     pub fn map_r_bi<RNew, Fwd, Bwd>(self, forward: Fwd, backward: Bwd)
         -> LiftedSeedPipeline<
             SeedPipeline<Local, N, Seed, H, R>,
-            ComposedLift<L, ShapeLift<Local, LiftedNode<CurN>, L::MapH, L::MapR,
-                                              LiftedNode<CurN>, L::MapH, RNew>>,
+            ComposedLift<L, ShapeLift<Local, SeedNode<CurN>, L::MapH, L::MapR,
+                                              SeedNode<CurN>, L::MapH, RNew>>,
         >
     where RNew: Clone + 'static,
           Fwd: Fn(&L::MapR) -> RNew + 'static,
           Bwd: Fn(&RNew) -> L::MapR + 'static,
     {
-        self.then_lift(Local::map_r_bi_lift::<LiftedNode<CurN>, L::MapH, L::MapR, RNew, _, _>(forward, backward))
+        self.then_lift(Local::map_r_bi_lift::<SeedNode<CurN>, L::MapH, L::MapR, RNew, _, _>(forward, backward))
     }
 
     // ── N-change sugar: map_n_bi ──────────────────────────
@@ -148,35 +148,35 @@ where N:    Clone + 'static,
     pub fn map_n_bi<N2, Co, Contra>(self, co: Co, contra: Contra)
         -> LiftedSeedPipeline<
             SeedPipeline<Local, N, Seed, H, R>,
-            ComposedLift<L, ShapeLift<Local, LiftedNode<CurN>, L::MapH, L::MapR,
-                                              LiftedNode<N2>, L::MapH, L::MapR>>,
+            ComposedLift<L, ShapeLift<Local, SeedNode<CurN>, L::MapH, L::MapR,
+                                              SeedNode<N2>, L::MapH, L::MapR>>,
         >
     where N2: Clone + 'static,
           Co:     Fn(&CurN) -> N2 + 'static,
           Contra: Fn(&N2)   -> CurN + 'static,
-          Local: Domain<LiftedNode<N2>>,
+          Local: Domain<SeedNode<N2>>,
     {
         let co_rc     = Rc::new(co);
         let contra_rc = Rc::new(contra);
         let lifted_co = {
             let c = co_rc.clone();
-            move |ln: &LiftedNode<CurN>| -> LiftedNode<N2> {
-                match ln_int::inner(ln) {
-                    LiftedNodeInner::Node(n) => ln_int::node((c)(n)),
-                    LiftedNodeInner::Entry   => ln_int::entry(),
+            move |ln: &SeedNode<CurN>| -> SeedNode<N2> {
+                match sn_int::inner(ln) {
+                    SeedNodeInner::Node(n) => sn_int::node((c)(n)),
+                    SeedNodeInner::EntryRoot   => sn_int::entry_root(),
                 }
             }
         };
         let lifted_contra = {
             let c = contra_rc.clone();
-            move |ln: &LiftedNode<N2>| -> LiftedNode<CurN> {
-                match ln_int::inner(ln) {
-                    LiftedNodeInner::Node(n) => ln_int::node((c)(n)),
-                    LiftedNodeInner::Entry   => ln_int::entry(),
+            move |ln: &SeedNode<N2>| -> SeedNode<CurN> {
+                match sn_int::inner(ln) {
+                    SeedNodeInner::Node(n) => sn_int::node((c)(n)),
+                    SeedNodeInner::EntryRoot   => sn_int::entry_root(),
                 }
             }
         };
-        self.then_lift(Local::map_n_bi_lift::<LiftedNode<CurN>, L::MapH, L::MapR, LiftedNode<N2>, _, _>(lifted_co, lifted_contra))
+        self.then_lift(Local::map_n_bi_lift::<SeedNode<CurN>, L::MapH, L::MapR, SeedNode<N2>, _, _>(lifted_co, lifted_contra))
     }
 
     // ── N-parametric library lifts: explain / explain_describe ──
@@ -184,14 +184,14 @@ where N:    Clone + 'static,
     pub fn explain(self)
         -> LiftedSeedPipeline<
             SeedPipeline<Local, N, Seed, H, R>,
-            ComposedLift<L, ShapeLift<Local, LiftedNode<CurN>, L::MapH, L::MapR,
-                                              LiftedNode<CurN>,
-                                              ExplainerHeap<LiftedNode<CurN>, L::MapH,
-                                                            ExplainerResult<LiftedNode<CurN>, L::MapH, L::MapR>>,
-                                              ExplainerResult<LiftedNode<CurN>, L::MapH, L::MapR>>>,
+            ComposedLift<L, ShapeLift<Local, SeedNode<CurN>, L::MapH, L::MapR,
+                                              SeedNode<CurN>,
+                                              ExplainerHeap<SeedNode<CurN>, L::MapH,
+                                                            ExplainerResult<SeedNode<CurN>, L::MapH, L::MapR>>,
+                                              ExplainerResult<SeedNode<CurN>, L::MapH, L::MapR>>>,
         >
     {
-        self.then_lift(Local::explainer_lift::<LiftedNode<CurN>, L::MapH, L::MapR>())
+        self.then_lift(Local::explainer_lift::<SeedNode<CurN>, L::MapH, L::MapR>())
     }
 
     // `explain_describe` lives on Shared only — `Local::explainer_describe_lift`
