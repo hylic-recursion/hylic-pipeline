@@ -84,7 +84,7 @@ fn local_explain_projects_via_seed_explainer_result() {
     assert_eq!(raw.heap.transitions.len(), 1); // one root seed
 
     // Sealed projection: N-typed view, no SeedNode.
-    let sealed: SeedExplainerResult<u64, u64, u64> = SeedExplainerResult::from_lifted(raw);
+    let sealed: SeedExplainerResult<u64, u64, u64> = raw.into();
     assert_eq!(sealed.entry_initial_heap, 0);
     assert_eq!(sealed.entry_working_heap, 6);
     assert_eq!(sealed.orig_result, 6);
