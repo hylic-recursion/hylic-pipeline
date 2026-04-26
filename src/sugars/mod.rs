@@ -3,8 +3,10 @@
 //! Stage-1 (on `SeedPipeline` / `TreeishPipeline`): reshape-based
 //! sugars that stay at Stage 1.
 //!
-//! Stage-2 (on `LiftedPipeline` — and on Stage-1 pipelines via
-//! auto-lift): chainable lift composition sugars.
+//! Stage-2 (on `Stage2Pipeline` via the deprecated `LiftedPipeline`
+//! alias): chainable lift composition sugars. Phase 4 will unify
+//! these with the seed-rooted inherent catalogue in
+//! `crate::lifted_seed::sugars_*` via a `Wrap`-dispatched trait.
 //!
 //! Each sugar is a trait method; the trait has one impl per
 //! (pipeline-type × domain). The trait is in scope via

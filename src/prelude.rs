@@ -8,14 +8,17 @@
 //! gives: everything in hylic's core prelude (domain markers,
 //! Shared-default Fold/Edgy constructors, executor helpers, lift
 //! atoms, explainer helpers) PLUS pipeline types
-//! (`SeedPipeline`, `LiftedPipeline`, `LiftedSeedPipeline`,
-//! `TreeishPipeline`, `OwnedPipeline`), source traits
-//! (`TreeishSource`, `PipelineExec`), and the sugar traits.
+//! (`SeedPipeline`, `Stage2Pipeline`, `TreeishPipeline`,
+//! `OwnedPipeline`), source traits (`TreeishSource`, `PipelineExec`),
+//! and sugar traits (`SeedSugars*`, `TreeishSugars*`, `LiftedSugars*`).
 
 pub use hylic::prelude::*;
 
+#[allow(deprecated)]
 pub use crate::{
-    SeedPipeline, TreeishPipeline, LiftedPipeline, LiftedSeedPipeline, OwnedPipeline,
+    SeedPipeline, TreeishPipeline, Stage2Pipeline,
+    LiftedPipeline, LiftedSeedPipeline,  // deprecated aliases of Stage2Pipeline
+    OwnedPipeline,
     TreeishSource,
     PipelineExec, PipelineExecOnce,
     PipelineSourceOnce,

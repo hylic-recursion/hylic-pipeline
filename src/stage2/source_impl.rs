@@ -1,16 +1,18 @@
-//! `LiftedPipeline::TreeishSource` — the seedless TreeishPipeline-
-//! rooted chain. The lift chain transforms `(treeish, fold)` and the
-//! continuation receives the result.
+//! `Stage2Pipeline::TreeishSource` — for chains whose lift L is
+//! typed at `Base::N` (= treeish-rooted chains, where the chain's
+//! input N is plain N).
 //!
-//! Under Option B the `SeedSource` impl was removed. The seed path
-//! lives in `LiftedSeedPipeline` (see `lifted_seed/`).
+//! Seed-rooted chains where L is typed at `SeedNode<N>` do NOT match
+//! this bound and so do not impl `TreeishSource` via this path —
+//! they expose `.run` directly via inherent impls in
+//! `crate::stage2::run_seed_*.rs`.
 
 use hylic::domain::Domain;
 use hylic::ops::Lift;
-use super::LiftedPipeline;
-use super::super::source::TreeishSource;
+use crate::source::TreeishSource;
+use super::pipeline::Stage2Pipeline;
 
-impl<Base, L> TreeishSource for LiftedPipeline<Base, L>
+impl<Base, L> TreeishSource for Stage2Pipeline<Base, L>
 where Base: TreeishSource,
       <Base as TreeishSource>::Domain: Domain<L::N2>,
       L: Lift<<Base as TreeishSource>::Domain,

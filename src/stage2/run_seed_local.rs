@@ -1,8 +1,8 @@
-//! `.run` / `.run_from_slice` on `LiftedSeedPipeline` — Local domain.
+//! `.run` / `.run_from_slice` on `Stage2Pipeline<SeedPipeline<Local, ...>, L>`.
 //!
-//! Mirror of `run.rs` with `Rc` storage and no `Send + Sync` bounds.
+//! Mirror of `run_seed_shared.rs` with `Rc` storage and no `Send + Sync` bounds.
 //! `SeedLift::new_local` / `from_rc_grow` is used in place of the
-//! Shared constructors. See `run.rs` for the composition flow.
+//! Shared constructors. See `run_seed_shared.rs` for the composition flow.
 
 use std::rc::Rc;
 
@@ -12,9 +12,9 @@ use hylic::graph::{self, Edgy};
 use hylic::ops::{Lift, SeedNode, SeedLift, ShapeCapable, TreeOps};
 use hylic::ops::seed_node_internal as sn_int;
 
-use super::LiftedSeedPipeline;
-use super::super::seed::SeedPipeline;
-use super::gat_helpers::{
+use super::pipeline::Stage2Pipeline;
+use crate::seed::SeedPipeline;
+use crate::lifted_seed::gat_helpers::{
     local_grow_as_rc, local_rc_as_grow,
     local_graph_as_edgy, local_edgy_as_graph,
     local_fold_as_concrete, local_concrete_as_fold,
@@ -24,8 +24,10 @@ use super::gat_helpers::{
 // field is a Shared-domain `Edgy<(), Seed>` regardless of the
 // pipeline's domain (the callback-iterator shape is the library's
 // single seed-iteration protocol). Local-domain `N`, `H`, `R`, and
-// `CurN` retain no `Send + Sync` requirement.
-impl<N, Seed, H, R, L, CurN> LiftedSeedPipeline<SeedPipeline<Local, N, Seed, H, R>, L>
+// `CurN` retain no `Send + Sync` requirement. (Phase 6 of the
+// seed-pipeline-unification plan closes this crack via per-domain
+// entry_seeds.)
+impl<N, Seed, H, R, L, CurN> Stage2Pipeline<SeedPipeline<Local, N, Seed, H, R>, L>
 where N:    Clone + 'static,
       Seed: Clone + Send + Sync + 'static,
       H:    Clone + 'static,
@@ -40,7 +42,7 @@ where N:    Clone + 'static,
       L::MapR: Clone + 'static,
 {
     /// Run the pipeline against an `Edgy<(), Seed>` callback-iterator
-    /// of root seeds, with the given base `entry_heap: H` for Entry's
+    /// of root seeds, with the given base `entry_heap: H` for EntryRoot's
     /// initial state. Seeds are captured into the constructed
     /// `SeedLift` at this moment and consumed during execution.
     pub fn run<E>(

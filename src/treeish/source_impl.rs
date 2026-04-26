@@ -7,7 +7,7 @@ use hylic::domain::Domain;
 use hylic::ops::IdentityLift;
 use super::TreeishPipeline;
 use super::super::source::TreeishSource;
-use super::super::lifted::LiftedPipeline;
+use super::super::stage2::Stage2Pipeline;
 
 impl<D, N, H, R> TreeishSource for TreeishPipeline<D, N, H, R>
 where D: Domain<N>,
@@ -36,7 +36,7 @@ where D: Domain<N>,
       N: 'static, H: 'static, R: 'static,
 {
     /// Transition to Stage 2 with an IdentityLift.
-    pub fn lift(self) -> LiftedPipeline<Self, IdentityLift> {
-        LiftedPipeline::new(self, IdentityLift)
+    pub fn lift(self) -> Stage2Pipeline<Self, IdentityLift> {
+        Stage2Pipeline::new(self, IdentityLift)
     }
 }

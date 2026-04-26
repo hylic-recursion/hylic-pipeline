@@ -135,7 +135,7 @@ where N: Clone + 'static, H: Clone + 'static, R: Clone + 'static,
           L2::MapR: Clone + 'static,
           Shared:   Domain<L2::N2>,
     {
-        LiftedPipeline::then_lift(self.lift(), l)
+        self.lift().then_lift(l)
     }
 }
 
@@ -163,6 +163,6 @@ where Base: TreeishSource<Domain = Shared>,
           L2::MapR: Clone + 'static,
           Shared:   Domain<L2::N2>,
     {
-        LiftedPipeline::then_lift(self, l)
+        self.then_lift(l)
     }
 }

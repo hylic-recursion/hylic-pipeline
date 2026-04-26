@@ -9,7 +9,7 @@
 use hylic::domain::Domain;
 use hylic::ops::{IdentityLift, SeedNode, ShapeCapable};
 use super::SeedPipeline;
-use super::super::lifted_seed::LiftedSeedPipeline;
+use super::super::stage2::Stage2Pipeline;
 use super::super::source::TreeishSource;
 
 impl<D, N, Seed, H, R> TreeishSource for SeedPipeline<D, N, Seed, H, R>
@@ -46,12 +46,11 @@ impl<D, N, Seed, H, R> SeedPipeline<D, N, Seed, H, R>
 where D: Domain<N> + Domain<SeedNode<N>>,
       N: 'static, Seed: 'static, H: 'static, R: 'static,
 {
-    /// Transition to Stage 2. Produces a `LiftedSeedPipeline` whose
+    /// Transition to Stage 2. Produces a `Stage2Pipeline` whose
     /// chain is typed at `SeedNode<N>`. SeedLift is NOT yet
     /// constructed — it's assembled at `.run` time from user-supplied
-    /// `root_seeds` and `entry_heap`. See the Option-B design in
-    /// `KB/.plans/project-entry-refactor/`.
-    pub fn lift(self) -> LiftedSeedPipeline<Self, IdentityLift> {
-        LiftedSeedPipeline::new(self, IdentityLift)
+    /// `root_seeds` and `entry_heap`.
+    pub fn lift(self) -> Stage2Pipeline<Self, IdentityLift> {
+        Stage2Pipeline::new(self, IdentityLift)
     }
 }

@@ -29,9 +29,11 @@ fn pipeline_types_name_and_store() {
     assert!(base_name.contains("SeedPipeline"));
     assert!(base_name.contains("u64"));
 
-    // Name the transformed pipeline type.
+    // Name the transformed pipeline type. After the seed-pipeline-
+    // unification, `LiftedPipeline` is a deprecated alias for
+    // `Stage2Pipeline`; `type_name` reports the alias target.
     let transformed_name = std::any::type_name::<MyTransformedPipeline>();
-    assert!(transformed_name.contains("LiftedPipeline"));
+    assert!(transformed_name.contains("Stage2Pipeline"));
     assert!(transformed_name.contains("ComposedLift"));
     assert!(transformed_name.contains("ShapeLift"));
 }

@@ -1,44 +1,20 @@
-//! LiftedSeedPipeline — Stage 2 of the SeedPipeline lifecycle.
+//! `LiftedSeedPipeline` — deprecated alias for `Stage2Pipeline`.
 //!
-//! Distinct from `LiftedPipeline` because its chain is typed at
-//! `SeedNode<N>` rather than `N`. At `.run` time, `SeedLift` is
-//! assembled from the `SeedPipeline`'s `grow` and user-supplied
-//! `root_seeds` + `entry_heap`, and composed as the first lift in
-//! the chain. Everything above it operates on `SeedNode<N>` —
-//! `Entry` is a first-class value of the node type.
+//! The two Stage-2 types collapsed into a single `Stage2Pipeline<Base, L>`.
+//! All run methods live in `crate::stage2::run_seed_*`. Sugar
+//! catalogues (`sugars_shared`/`sugars_local` here) target the alias
+//! and so apply to `Stage2Pipeline<SeedPipeline<...>, L>` directly.
+//!
+//! Phase 4 of the seed-pipeline-unification plan will fold these
+//! per-Base inherent sugars into a Wrap-dispatched unified surface.
+//! For now they remain.
 
 use hylic::ops::IdentityLift;
 
-pub mod primitives;
-pub mod run;
-pub mod run_local;
 pub mod sugars_shared;
 pub mod sugars_local;
 pub(crate) mod gat_helpers;
 
-// ANCHOR: lifted_seed_pipeline_struct
-/// Stage-2 typestate pipeline rooted at a `SeedPipeline`. Wraps the
-/// base with a lift chain `L` typed at `SeedNode<N>`. `SeedLift` is
-/// NOT yet constructed — it's assembled at `.run` time when the user
-/// supplies the root seeds and entry heap.
-#[must_use]
-pub struct LiftedSeedPipeline<Base, L = IdentityLift> {
-    pub(crate) base:     Base,
-    pub(crate) pre_lift: L,
-}
-// ANCHOR_END: lifted_seed_pipeline_struct
-
-impl<Base, L> LiftedSeedPipeline<Base, L> {
-    pub(crate) fn new(base: Base, pre_lift: L) -> Self {
-        LiftedSeedPipeline { base, pre_lift }
-    }
-}
-
-impl<Base: Clone, L: Clone> Clone for LiftedSeedPipeline<Base, L> {
-    fn clone(&self) -> Self {
-        LiftedSeedPipeline {
-            base:     self.base.clone(),
-            pre_lift: self.pre_lift.clone(),
-        }
-    }
-}
+#[deprecated(note = "use Stage2Pipeline (single Stage-2 type for both treeish-rooted and seed-rooted)")]
+#[allow(type_alias_bounds)]
+pub type LiftedSeedPipeline<Base, L = IdentityLift> = crate::stage2::Stage2Pipeline<Base, L>;

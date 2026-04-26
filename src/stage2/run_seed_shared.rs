@@ -1,4 +1,4 @@
-//! `.run` / `.run_from_slice` on `LiftedSeedPipeline`. Shared domain.
+//! `.run` / `.run_from_slice` on `Stage2Pipeline<SeedPipeline<Shared, ...>, L>`.
 //!
 //! At `.run` time, `SeedLift` is assembled from the `SeedPipeline`'s
 //! `grow` + `seeds_from_node` and the user's `root_seeds` +
@@ -28,15 +28,15 @@ use hylic::graph::{self, Edgy};
 use hylic::ops::{Lift, SeedNode, SeedLift, ShapeCapable, TreeOps};
 use hylic::ops::seed_node_internal as sn_int;
 
-use super::LiftedSeedPipeline;
-use super::super::seed::SeedPipeline;
-use super::gat_helpers::{
+use super::pipeline::Stage2Pipeline;
+use crate::seed::SeedPipeline;
+use crate::lifted_seed::gat_helpers::{
     shared_grow_as_arc, shared_arc_as_grow,
     shared_graph_as_edgy, shared_edgy_as_graph,
     shared_fold_as_concrete, shared_concrete_as_fold,
 };
 
-impl<N, Seed, H, R, L, CurN> LiftedSeedPipeline<SeedPipeline<Shared, N, Seed, H, R>, L>
+impl<N, Seed, H, R, L, CurN> Stage2Pipeline<SeedPipeline<Shared, N, Seed, H, R>, L>
 where N:    Clone + Send + Sync + 'static,
       Seed: Clone + Send + Sync + 'static,
       H:    Clone + Send + Sync + 'static,
@@ -51,7 +51,7 @@ where N:    Clone + Send + Sync + 'static,
       L::MapR: Clone + Send + Sync + 'static,
 {
     /// Run the pipeline against an `Edgy<(), Seed>` callback-iterator
-    /// of root seeds, with the given base `entry_heap: H` for Entry's
+    /// of root seeds, with the given base `entry_heap: H` for EntryRoot's
     /// initial state. Seeds are captured into the constructed
     /// `SeedLift` at this moment and consumed during execution.
     pub fn run<E>(
