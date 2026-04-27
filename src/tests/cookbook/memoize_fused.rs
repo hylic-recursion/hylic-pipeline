@@ -6,11 +6,9 @@
 //! This test runs `memoize_by` on a diamond DAG under both Fused and
 //! Funnel to confirm the scoped-borrow fix covers both regimes.
 
-#[allow(unused_imports)]
-use crate::Stage2SugarsShared;
 use std::collections::HashMap;
 use std::sync::Arc;
-use crate::{TreeishPipeline, PipelineExec, LiftedSugarsShared};
+use crate::{TreeishPipeline, PipelineExec, Stage2SugarsShared};
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
 use hylic::graph::treeish;

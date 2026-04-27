@@ -2,7 +2,7 @@
 //!
 //! Wraps a Stage-1 `Base` source with a single lift `L` (usually a
 //! `ComposedLift` tree built from sugar chaining). Replaces both the
-//! old `LiftedPipeline` (TreeishPipeline-rooted) and `LiftedSeedPipeline`
+//! old `Stage2Pipeline` (TreeishPipeline-rooted) and `Stage2Pipeline`
 //! (SeedPipeline-rooted) with a single struct distinguished only by
 //! which `Base` it wraps and which `.run` is callable.
 //!

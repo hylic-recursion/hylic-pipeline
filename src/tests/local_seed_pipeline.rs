@@ -1,4 +1,4 @@
-//! Local-domain `LiftedSeedPipeline` — sugars + run. Mirrors a
+//! Local-domain `Stage2Pipeline` — sugars + run. Mirrors a
 //! subset of `intuitive_reuse.rs` / `shape_shifting.rs` / `power_user.rs`
 //! against Local storage, proving parity with Shared.
 
@@ -63,7 +63,7 @@ fn local_zipmap_and_map_r_bi() {
 #[test]
 fn local_map_n_bi_stage2() {
     // Stage-2 bijective N-change. Demonstrates the new sugar on
-    // LiftedSeedPipeline (Local).
+    // Stage2Pipeline (Local).
     let r: u64 = basic()
         .lift()
         .map_n_bi::<i64, _, _>(|n: &u64| *n as i64, |n: &i64| *n as u64)

@@ -1,16 +1,14 @@
-//! Smoke tests for Stage-2 sugars on SeedPipeline (via LiftedSeedPipeline)
-//! and TreeishPipeline (via LiftedPipeline).
+//! Smoke tests for Stage-2 sugars on SeedPipeline (via Stage2Pipeline)
+//! and TreeishPipeline (via Stage2Pipeline).
 //!
 //! Under Option B: SeedPipeline requires an explicit `.lift()` to
-//! transition to LiftedSeedPipeline before Stage-2 sugars apply.
+//! transition to Stage2Pipeline before Stage-2 sugars apply.
 //! TreeishPipeline retains the blanket auto-lift trait.
 
-#[allow(unused_imports)]
-use crate::Stage2SugarsShared;
 use std::sync::Arc;
 use crate::{
     SeedPipeline, TreeishPipeline, PipelineExec,
-    LiftedSugarsShared,
+    Stage2SugarsShared,
 };
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;

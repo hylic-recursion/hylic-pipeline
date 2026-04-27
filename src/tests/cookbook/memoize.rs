@@ -4,11 +4,9 @@
 //! memoize_by keyed on node id, the second visit replays cached
 //! children.
 
-#[allow(unused_imports)]
-use crate::Stage2SugarsShared;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use crate::{TreeishPipeline, PipelineExec, LiftedSugarsShared};
+use crate::{TreeishPipeline, PipelineExec, Stage2SugarsShared};
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
 use hylic::graph::treeish;

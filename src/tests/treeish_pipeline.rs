@@ -1,9 +1,7 @@
 //! TreeishPipeline — the honest-base typestate for users who have
 //! a Treeish<N> directly.
 
-#[allow(unused_imports)]
-use crate::Stage2SugarsShared;
-use crate::{TreeishPipeline, PipelineExec, LiftedSugarsShared};
+use crate::{TreeishPipeline, PipelineExec, Stage2SugarsShared};
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
 use hylic::graph::treeish;

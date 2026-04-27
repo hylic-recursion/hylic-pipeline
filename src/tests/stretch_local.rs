@@ -2,13 +2,11 @@
 //! non-Clone N wrapped in Rc, complex heap types. These scenarios
 //! can't run under Funnel because Rc / RefCell aren't Send+Sync.
 
-#[allow(unused_imports)]
-use crate::Stage2SugarsLocal;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use crate::{PipelineExec, TreeishPipeline, LiftedSugarsLocal};
+use crate::{PipelineExec, TreeishPipeline, Stage2SugarsLocal};
 use hylic::domain::{local, Local};
 
 // Non-Clone N, wrapped in Rc.

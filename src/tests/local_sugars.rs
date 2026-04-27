@@ -1,13 +1,11 @@
 //! Local-domain Stage-2 sugars: wrap_init_local, zipmap_local, etc.
-//! Proves the per-D extension impl on LiftedPipeline gives Local
+//! Proves the per-D extension impl on Stage2Pipeline gives Local
 //! users sugar parity with Shared.
 
-#[allow(unused_imports)]
-use crate::Stage2SugarsLocal;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::{PipelineExec, TreeishPipeline, LiftedSugarsLocal};
+use crate::{PipelineExec, TreeishPipeline, Stage2SugarsLocal};
 use hylic::domain::{local, Local};
 
 #[test]

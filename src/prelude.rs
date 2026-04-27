@@ -24,7 +24,3 @@ pub use crate::{
     TreeishSugarsShared, TreeishSugarsLocal,
     Stage2SugarsShared, Stage2SugarsLocal,
 };
-
-// Deprecated aliases — Phase 11 retires.
-#[allow(deprecated)]
-pub use crate::{LiftedPipeline, LiftedSeedPipeline, LiftedSugarsShared, LiftedSugarsLocal};

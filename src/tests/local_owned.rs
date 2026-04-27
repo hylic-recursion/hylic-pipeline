@@ -6,7 +6,7 @@
 //! - `OwnedPipeline<N, H, R>` consumes on run; the fold is
 //!   pre-built and the pipeline is one-shot.
 //! - `ShapeLift<Local, …>` composes via then_lift (once
-//!   LiftedPipeline's sugars are wired for Local — until then
+//!   Stage2Pipeline's sugars are wired for Local — until then
 //!   via the raw primitive).
 
 use std::cell::RefCell;

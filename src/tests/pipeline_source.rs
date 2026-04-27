@@ -1,6 +1,6 @@
 //! TreeishSource + PipelineExec on SeedPipeline (the seedless /
 //! no-SeedLift path). The seeded / SeedLift path is tested via
-//! `LiftedSeedPipeline::.run(...)` in other test files.
+//! `Stage2Pipeline::.run(...)` in other test files.
 
 use std::sync::Arc;
 use crate::{SeedPipeline, TreeishSource, PipelineExec};

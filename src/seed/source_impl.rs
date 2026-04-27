@@ -3,7 +3,7 @@
 //! traversed by a `run_from_node` executor.
 //!
 //! The seed axis as a *lift-chain* input is handled by
-//! `LiftedSeedPipeline` (see `lifted_seed/`). `SeedSource` and
+//! `Stage2Pipeline`. `SeedSource` and
 //! `with_seeded` were removed by the Option-B pivot.
 
 use hylic::domain::Domain;

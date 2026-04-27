@@ -8,7 +8,7 @@
 //! continuation.
 //!
 //! The bodies of `SeedWrap`'s methods are the closure adapters
-//! that previously lived in `lifted_seed/sugars_shared.rs`,
+//! that previously lived in the per-Base seed sugars file,
 //! reorganised to be the single source of truth for seed-rooted
 //! Stage-2 dispatch.
 

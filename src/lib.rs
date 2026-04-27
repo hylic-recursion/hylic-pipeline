@@ -9,18 +9,15 @@
 //!     input N is `<Base::Wrap as Wrap>::Of<UserN>` — `UserN` for
 //!     treeish-rooted (`Identity` wrap), `SeedNode<UserN>` for
 //!     seed-rooted (`SeedWrap`).
-//!   - Backward-compat aliases: `LiftedPipeline` and `LiftedSeedPipeline`
-//!     are deprecated aliases of `Stage2Pipeline`.
 //!   - One out-of-band one-shot pipeline: [`OwnedPipeline`]
 //!   - Source interface traits: [`TreeishSource`], [`PipelineSourceOnce`]
 //!   - Blanket execution traits: [`PipelineExec`], [`PipelineExecOnce`]
 //!   - Stage-1 sugar traits:
 //!     - SeedPipeline: [`SeedSugarsShared`], [`SeedSugarsLocal`]
 //!     - TreeishPipeline: [`TreeishSugarsShared`], [`TreeishSugarsLocal`]
-//!   - Stage-2 sugars: trait-based on the treeish-rooted side
-//!     (`LiftedSugarsShared`/`Local`) and inherent on the seed-rooted
-//!     side. Phase 4 of the seed-pipeline-unification plan will
-//!     unify these.
+//!   - Stage-2 unified sugar traits: [`Stage2SugarsShared`],
+//!     [`Stage2SugarsLocal`] — `Wrap`-dispatched, blanket-implemented
+//!     on every `Stage2Pipeline<Base, L>`.
 //!
 //! Users who need only the lift-primitive surface (`Shared::wrap_init_lift`,
 //! `Shared::n_lift`, `LiftBare::apply_bare`, …) can depend on `hylic`
@@ -53,9 +50,5 @@ pub use sugars::{
     TreeishSugarsShared, TreeishSugarsLocal,
     Stage2SugarsShared, Stage2SugarsLocal,
 };
-#[allow(deprecated)]
-pub use sugars::{LiftedSugarsShared, LiftedSugarsLocal};
 pub use hylic::ops::SeedNode;
 pub use stage2::{Wrap, Identity, SeedWrap, WrapShared, WrapLocal, Stage2Base, Stage2Pipeline};
-#[allow(deprecated)]
-pub use stage2::{LiftedPipeline, LiftedSeedPipeline};

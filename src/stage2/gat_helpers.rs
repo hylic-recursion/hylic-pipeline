@@ -1,4 +1,4 @@
-//! GAT-normalisation helpers for `LiftedSeedPipeline`.
+//! GAT-normalisation helpers for `Stage2Pipeline`.
 //!
 //! Rust's trait-solver does not reduce
 //! `<Shared as Domain<N>>::Grow<Seed, N>`

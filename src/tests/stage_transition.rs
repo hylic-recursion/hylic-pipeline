@@ -41,7 +41,7 @@ fn lift_preserves_semantics_of_base_run() {
 fn coalgebra_must_precede_algebra() {
     // The Phase-3 typestate enforces ordering via method presence.
     // Compile-time check: `lifted.filter_seeds(...)` would not compile
-    // because LiftedPipeline has no filter_seeds method.
+    // because Stage2Pipeline has no filter_seeds method.
     //
     // The runtime test here just exercises the legal order.
     let r = basic_pipeline()

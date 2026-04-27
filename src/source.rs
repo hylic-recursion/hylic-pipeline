@@ -1,7 +1,7 @@
 //! Pipeline source traits and execution extensions.
 //!
 //! Under Option B (post-`project-entry-refactor`), the seed path is
-//! a distinct type (`LiftedSeedPipeline`) with inherent methods, not
+//! a distinct type (`Stage2Pipeline`) with inherent methods, not
 //! a trait-level concern. `source.rs` carries only the seedless
 //! abstractions:
 //!
@@ -12,7 +12,7 @@
 //!
 //! `SeedSource` / `PipelineExecSeed` / `with_seeded` have been
 //! removed: `SeedPipeline::lift()` transitions directly to
-//! `LiftedSeedPipeline` (see `lifted_seed/`), whose `.run` captures
+//! `Stage2Pipeline`, whose `.run` captures
 //! seeds and assembles `SeedLift` as the first lift in the chain.
 
 use hylic::exec::Executor;
