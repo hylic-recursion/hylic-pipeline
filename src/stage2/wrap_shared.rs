@@ -1,3 +1,4 @@
+#![allow(clippy::type_complexity)] // load-bearing: each projection is a type-level proof
 //! `WrapShared` — Shared-domain build methods on `Wrap` impls.
 //!
 //! Each method constructs a `ShapeLift<Shared, Self::Of<UN>, …>`

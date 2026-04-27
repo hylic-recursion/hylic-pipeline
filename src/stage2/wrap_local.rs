@@ -1,3 +1,4 @@
+#![allow(clippy::type_complexity)] // load-bearing: each projection is a type-level proof
 //! `WrapLocal` — Local-domain build methods on `Wrap` impls.
 //!
 //! Mirror of `wrap_shared.rs` with `Rc` storage and no `Send + Sync`

@@ -6,6 +6,7 @@
 //! WrapLocal>::build_*::<…>(args)`.
 
 #![allow(missing_docs)] // surface mirrors documented primitive constructors
+#![allow(clippy::type_complexity)] // load-bearing: each projection is a type-level proof
 
 use hylic::domain::{Domain, Local};
 use hylic::ops::{ComposedLift, IdentityLift, ShapeLift};
