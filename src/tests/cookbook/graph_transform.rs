@@ -3,6 +3,8 @@
 //! Demonstrates filter_edges, wrap_visit, map_node_bi at Stage-2
 //! against a Module dependency graph.
 
+#[allow(unused_imports)]
+use crate::Stage2SugarsShared;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use crate::{TreeishPipeline, PipelineExec, LiftedSugarsShared, TreeishSugarsShared};

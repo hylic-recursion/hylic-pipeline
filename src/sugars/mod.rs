@@ -23,5 +23,12 @@ pub use seed_shared::SeedSugarsShared;
 pub use seed_local::SeedSugarsLocal;
 pub use treeish_shared::TreeishSugarsShared;
 pub use treeish_local::TreeishSugarsLocal;
-pub use lifted_shared::LiftedSugarsShared;
-pub use lifted_local::LiftedSugarsLocal;
+pub use lifted_shared::Stage2SugarsShared;
+pub use lifted_local::Stage2SugarsLocal;
+// Back-compat re-export (Phase 11 retires it).
+#[allow(deprecated)]
+#[deprecated(note = "renamed to Stage2SugarsShared")]
+pub use lifted_shared::Stage2SugarsShared as LiftedSugarsShared;
+#[allow(deprecated)]
+#[deprecated(note = "renamed to Stage2SugarsLocal")]
+pub use lifted_local::Stage2SugarsLocal as LiftedSugarsLocal;

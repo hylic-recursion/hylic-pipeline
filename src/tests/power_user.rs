@@ -1,5 +1,7 @@
 //! End-to-end power-user fluent chains under both Fused and Funnel.
 
+#[allow(unused_imports)]
+use crate::Stage2SugarsShared;
 use std::sync::Arc;
 use crate::{SeedPipeline, SeedSugarsShared};
 use hylic::domain::shared::{self as dom, fold::fold};

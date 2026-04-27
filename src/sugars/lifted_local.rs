@@ -1,153 +1,206 @@
-//! Blanket Stage-2 sugars for the Local domain. Mirror of
-//! `lifted_shared.rs` with Rc storage and no Send+Sync bounds.
+//! Stage-2 Local sugars — the **unified** surface (Local mirror).
 //!
-//! With this trait in scope (`use hylic::prelude::*` or
-//! `use hylic::LiftedSugarsLocal`), users can call `.wrap_init(w)`,
-//! `.zipmap(m)`, `.map_r_bi(fwd, bwd)` directly on a
-//! `SeedPipeline<Local, …>`, `TreeishPipeline<Local, …>`, or
-//! `Stage2Pipeline<…Local base…>` — no `.lift()` ceremony required
-//! for Stage-1 types, no `_local` suffix clutter.
+//! Mirror of `lifted_shared.rs` with `Rc` storage and no `Send + Sync`
+//! bounds. Same Wrap-as-dispatcher pattern: each sugar method is a
+//! one-line forwarder through `<<Self::Base as Stage2Base>::Wrap as
+//! WrapLocal>::build_*::<…>(args)`.
 
-#![allow(missing_docs)] // module-level: public items are per-domain/per-policy mirrors of documented primitives
+#![allow(missing_docs)] // surface mirrors documented primitive constructors
 
-use crate::stage2::Stage2Pipeline;
-use crate::treeish::TreeishPipeline;
-use crate::source::TreeishSource;
 use hylic::domain::{Domain, Local};
-use hylic::ops::{ComposedLift, IdentityLift, Lift, ShapeLift};
+use hylic::ops::{ComposedLift, IdentityLift, ShapeLift};
 use hylic::prelude::explainer::{ExplainerHeap, ExplainerResult};
 
-pub trait LiftedSugarsLocal<N, H, R>:
-    TreeishSource<Domain = Local, N = N, H = H, R = R> + Sized
-where
-    N: Clone + 'static, H: Clone + 'static, R: Clone + 'static,
-{
-    type With<L2>: TreeishSource<Domain = Local>
-    where L2: Lift<Local, N, H, R>,
-          L2::N2:   Clone + 'static,
-          L2::MapH: Clone + 'static,
-          L2::MapR: Clone + 'static,
-          Local:    Domain<L2::N2>;
+use crate::source::TreeishSource;
+use crate::treeish::TreeishPipeline;
+use crate::stage2::{Stage2Pipeline, Stage2Base, Wrap};
+use crate::stage2::wrap_local::WrapLocal;
 
-    /// Sole primitive: append a lift to the chain.
-    fn then_lift<L2>(self, l: L2) -> Self::With<L2>
-    where L2: Lift<Local, N, H, R>,
-          L2::N2:   Clone + 'static,
-          L2::MapH: Clone + 'static,
-          L2::MapR: Clone + 'static,
-          Local:    Domain<L2::N2>;
+// ── Trait ──────────────────────────────────────────────────────
+
+pub trait Stage2SugarsLocal<UN, H, R>: Sized
+where
+    UN: Clone + 'static,
+    H:  Clone + 'static,
+    R:  Clone + 'static,
+{
+    type Base: Stage2Base;
+    type With<L2>;
+
+    fn then_lift<L2>(self, l: L2) -> Self::With<L2>;
 
     // ── fold-side sugars ─────────────────────────────────────
 
-    fn wrap_init<W>(self, wrapper: W) -> Self::With<ShapeLift<Local, N, H, R, N, H, R>>
-    where W: Fn(&N, &dyn Fn(&N) -> H) -> H + 'static,
-    { self.then_lift(Local::wrap_init_lift::<N, H, R, _>(wrapper)) }
+    fn wrap_init<W>(self, w: W) -> Self::With<ShapeLift<Local,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>, H, R,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>, H, R>>
+    where
+        <Self::Base as Stage2Base>::Wrap: WrapLocal,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>: Clone + 'static,
+        W: Fn(&UN, &dyn Fn(&UN) -> H) -> H + 'static,
+    {
+        self.then_lift(<<Self::Base as Stage2Base>::Wrap as WrapLocal>::build_wrap_init::<UN, H, R, _>(w))
+    }
 
-    fn wrap_accumulate<W>(self, wrapper: W) -> Self::With<ShapeLift<Local, N, H, R, N, H, R>>
-    where W: Fn(&mut H, &R, &dyn Fn(&mut H, &R)) + 'static,
-    { self.then_lift(Local::wrap_accumulate_lift::<N, H, R, _>(wrapper)) }
+    fn wrap_accumulate<W>(self, w: W) -> Self::With<ShapeLift<Local,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>, H, R,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>, H, R>>
+    where
+        <Self::Base as Stage2Base>::Wrap: WrapLocal,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>: Clone + 'static,
+        W: Fn(&mut H, &R, &dyn Fn(&mut H, &R)) + 'static,
+    {
+        self.then_lift(<<Self::Base as Stage2Base>::Wrap as WrapLocal>::build_wrap_accumulate::<UN, H, R, _>(w))
+    }
 
-    fn wrap_finalize<W>(self, wrapper: W) -> Self::With<ShapeLift<Local, N, H, R, N, H, R>>
-    where W: Fn(&H, &dyn Fn(&H) -> R) -> R + 'static,
-    { self.then_lift(Local::wrap_finalize_lift::<N, H, R, _>(wrapper)) }
+    fn wrap_finalize<W>(self, w: W) -> Self::With<ShapeLift<Local,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>, H, R,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>, H, R>>
+    where
+        <Self::Base as Stage2Base>::Wrap: WrapLocal,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>: Clone + 'static,
+        W: Fn(&H, &dyn Fn(&H) -> R) -> R + 'static,
+    {
+        self.then_lift(<<Self::Base as Stage2Base>::Wrap as WrapLocal>::build_wrap_finalize::<UN, H, R, _>(w))
+    }
 
-    fn zipmap<Extra, M>(self, mapper: M) -> Self::With<ShapeLift<Local, N, H, R, N, H, (R, Extra)>>
-    where Extra: Clone + 'static,
-          M: Fn(&R) -> Extra + 'static,
-    { self.then_lift(Local::zipmap_lift::<N, H, R, Extra, _>(mapper)) }
+    fn zipmap<Extra, M>(self, m: M) -> Self::With<ShapeLift<Local,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>, H, R,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>, H, (R, Extra)>>
+    where
+        <Self::Base as Stage2Base>::Wrap: WrapLocal,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>: Clone + 'static,
+        Extra: Clone + 'static,
+        M: Fn(&R) -> Extra + 'static,
+    {
+        self.then_lift(<<Self::Base as Stage2Base>::Wrap as WrapLocal>::build_zipmap::<UN, H, R, Extra, _>(m))
+    }
 
-    fn map_r_bi<RNew, Fwd, Bwd>(self, forward: Fwd, backward: Bwd)
-        -> Self::With<ShapeLift<Local, N, H, R, N, H, RNew>>
-    where RNew: Clone + 'static,
-          Fwd: Fn(&R) -> RNew + 'static,
-          Bwd: Fn(&RNew) -> R + 'static,
-    { self.then_lift(Local::map_r_bi_lift::<N, H, R, RNew, _, _>(forward, backward)) }
+    fn map_r_bi<RNew, Fwd, Bwd>(self, fwd: Fwd, bwd: Bwd) -> Self::With<ShapeLift<Local,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>, H, R,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>, H, RNew>>
+    where
+        <Self::Base as Stage2Base>::Wrap: WrapLocal,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>: Clone + 'static,
+        RNew: Clone + 'static,
+        Fwd: Fn(&R) -> RNew + 'static,
+        Bwd: Fn(&RNew) -> R + 'static,
+    {
+        self.then_lift(<<Self::Base as Stage2Base>::Wrap as WrapLocal>::build_map_r_bi::<UN, H, R, RNew, _, _>(fwd, bwd))
+    }
 
     // ── treeish-side sugars ──────────────────────────────────
 
-    fn filter_edges<P>(self, pred: P) -> Self::With<ShapeLift<Local, N, H, R, N, H, R>>
-    where P: Fn(&N) -> bool + 'static,
-    { self.then_lift(Local::filter_edges_lift::<N, H, R, _>(pred)) }
+    fn filter_edges<P>(self, pred: P) -> Self::With<ShapeLift<Local,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>, H, R,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>, H, R>>
+    where
+        <Self::Base as Stage2Base>::Wrap: WrapLocal,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>: Clone + 'static,
+        P: Fn(&UN) -> bool + 'static,
+    {
+        self.then_lift(<<Self::Base as Stage2Base>::Wrap as WrapLocal>::build_filter_edges::<UN, H, R, _>(pred))
+    }
 
-    fn wrap_visit<W>(self, wrapper: W) -> Self::With<ShapeLift<Local, N, H, R, N, H, R>>
-    where W: Fn(&N, &mut dyn FnMut(&N), &dyn Fn(&N, &mut dyn FnMut(&N))) + 'static,
-    { self.then_lift(Local::wrap_visit_lift::<N, H, R, _>(wrapper)) }
+    fn memoize_by<K, KeyFn>(self, key_fn: KeyFn) -> Self::With<ShapeLift<Local,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>, H, R,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>, H, R>>
+    where
+        <Self::Base as Stage2Base>::Wrap: WrapLocal,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>: Clone + 'static,
+        K: Eq + std::hash::Hash + Clone + 'static,
+        KeyFn: Fn(&UN) -> K + 'static,
+    {
+        self.then_lift(<<Self::Base as Stage2Base>::Wrap as WrapLocal>::build_memoize_by::<UN, H, R, K, _>(key_fn))
+    }
 
-    fn memoize_by<K, KeyFn>(self, key_fn: KeyFn)
-        -> Self::With<ShapeLift<Local, N, H, R, N, H, R>>
-    where K: Eq + std::hash::Hash + 'static,
-          KeyFn: Fn(&N) -> K + 'static,
-    { self.then_lift(Local::memoize_by_lift::<N, H, R, K, _>(key_fn)) }
+    fn wrap_visit<W>(self, w: W) -> Self::With<ShapeLift<Local,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>, H, R,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>, H, R>>
+    where
+        <Self::Base as Stage2Base>::Wrap: WrapLocal,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>: Clone + 'static,
+        W: Fn(&UN, &mut dyn FnMut(&UN), &dyn Fn(&UN, &mut dyn FnMut(&UN))) + 'static,
+    {
+        self.then_lift(<<Self::Base as Stage2Base>::Wrap as WrapLocal>::build_wrap_visit::<UN, H, R, _>(w))
+    }
 
     // ── N-change ─────────────────────────────────────────────
 
-    fn map_n_bi<N2, Co, Contra>(self, co: Co, contra: Contra)
-        -> Self::With<ShapeLift<Local, N, H, R, N2, H, R>>
-    where N2: Clone + 'static,
-          Co:     Fn(&N)  -> N2 + Clone + 'static,
-          Contra: Fn(&N2) -> N  + Clone + 'static,
-          Local:  Domain<N2>,
-    { self.then_lift(Local::map_n_bi_lift::<N, H, R, N2, _, _>(co, contra)) }
+    fn map_n_bi<UN2, Co, Contra>(self, co: Co, contra: Contra) -> Self::With<ShapeLift<Local,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>, H, R,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN2>, H, R>>
+    where
+        <Self::Base as Stage2Base>::Wrap: WrapLocal,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>:  Clone + 'static,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN2>: Clone + 'static,
+        UN2: Clone + 'static,
+        Co:     Fn(&UN)  -> UN2 + Clone + 'static,
+        Contra: Fn(&UN2) -> UN  + Clone + 'static,
+    {
+        self.then_lift(<<Self::Base as Stage2Base>::Wrap as WrapLocal>::build_map_n_bi::<UN, UN2, H, R, _, _>(co, contra))
+    }
 
     // ── explainer ────────────────────────────────────────────
 
-    fn explain(self) -> Self::With<ShapeLift<Local, N, H, R, N,
-                                   ExplainerHeap<N, H, ExplainerResult<N, H, R>>,
-                                   ExplainerResult<N, H, R>>>
-    { self.then_lift(Local::explainer_lift::<N, H, R>()) }
+    fn explain(self) -> Self::With<ShapeLift<Local,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>, H, R,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>,
+        ExplainerHeap<<<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>, H,
+                      ExplainerResult<<<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>, H, R>>,
+        ExplainerResult<<<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>, H, R>>>
+    where
+        <Self::Base as Stage2Base>::Wrap: WrapLocal,
+        <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>: Clone + 'static,
+    {
+        self.then_lift(<<Self::Base as Stage2Base>::Wrap as WrapLocal>::build_explain::<UN, H, R>())
+    }
 }
 
-// SeedPipeline<Local, …> no longer auto-lifts into LiftedSugarsLocal
-// (Option B). LiftedSeedPipeline is Shared-pinned for now; Local
-// SeedPipelines can still reach .run_from_node via TreeishSource.
+// ── Auto-lift on TreeishPipeline ───────────────────────────────
 
-// ── Impl 1: TreeishPipeline — auto-lifts first ─────────────────
-
-impl<N, H, R> LiftedSugarsLocal<N, H, R> for TreeishPipeline<Local, N, H, R>
-where N: Clone + 'static, H: Clone + 'static, R: Clone + 'static,
+impl<N, H, R> Stage2SugarsLocal<N, H, R> for TreeishPipeline<Local, N, H, R>
+where
+    N: Clone + 'static,
+    H: Clone + 'static,
+    R: Clone + 'static,
+    <Local as Domain<N>>::Graph<N>:   Clone,
+    <Local as Domain<N>>::Fold<H, R>: Clone,
 {
-    type With<L2> = Stage2Pipeline<Self, ComposedLift<IdentityLift, L2>>
-    where L2: Lift<Local, N, H, R>,
-          L2::N2:   Clone + 'static,
-          L2::MapH: Clone + 'static,
-          L2::MapR: Clone + 'static,
-          Local:    Domain<L2::N2>;
+    type Base = Self;
+    type With<L2> = Stage2Pipeline<Self, ComposedLift<IdentityLift, L2>>;
 
-    fn then_lift<L2>(self, l: L2) -> Self::With<L2>
-    where L2: Lift<Local, N, H, R>,
-          L2::N2:   Clone + 'static,
-          L2::MapH: Clone + 'static,
-          L2::MapR: Clone + 'static,
-          Local:    Domain<L2::N2>,
-    {
+    fn then_lift<L2>(self, l: L2) -> Self::With<L2> {
         self.lift().then_lift(l)
     }
 }
 
-// ── Impl 2: Stage2Pipeline — compose at the tip ────────────────
+// ── Stage2Pipeline blanket impl ────────────────────────────────
 
-impl<Base, L> LiftedSugarsLocal<L::N2, L::MapH, L::MapR> for Stage2Pipeline<Base, L>
-where Base: TreeishSource<Domain = Local>,
-      Local: Domain<L::N2>,
-      L: Lift<Local, Base::N, Base::H, Base::R>,
-      L::N2:   Clone + 'static,
-      L::MapH: Clone + 'static,
-      L::MapR: Clone + 'static,
+// Mirror of Stage2SugarsShared blanket impl with `Local` storage.
+// See `lifted_shared.rs` for design notes.
+impl<Base, L, UN, H, R> Stage2SugarsLocal<UN, H, R> for Stage2Pipeline<Base, L>
+where
+    Base: Stage2Base + TreeishSource<Domain = Local>,
+    Base::UserN: Clone + 'static,
+    UN: Clone + 'static,
+    H:  Clone + 'static,
+    R:  Clone + 'static,
+    <Base::Wrap as Wrap>::Of<Base::UserN>: Clone + 'static,
+    <Base::Wrap as Wrap>::Of<UN>:          Clone + 'static,
+    Local: Domain<<Base::Wrap as Wrap>::Of<Base::UserN>>,
+    Local: Domain<<Base::Wrap as Wrap>::Of<UN>>,
+    L: hylic::ops::Lift<Local,
+            <Base::Wrap as Wrap>::Of<Base::UserN>,
+            Base::H, Base::R,
+            N2   = <Base::Wrap as Wrap>::Of<UN>,
+            MapH = H,
+            MapR = R>,
 {
-    type With<L2> = Stage2Pipeline<Base, ComposedLift<L, L2>>
-    where L2: Lift<Local, L::N2, L::MapH, L::MapR>,
-          L2::N2:   Clone + 'static,
-          L2::MapH: Clone + 'static,
-          L2::MapR: Clone + 'static,
-          Local:    Domain<L2::N2>;
+    type Base = Base;
+    type With<L2> = Stage2Pipeline<Base, ComposedLift<L, L2>>;
 
-    fn then_lift<L2>(self, l: L2) -> Self::With<L2>
-    where L2: Lift<Local, L::N2, L::MapH, L::MapR>,
-          L2::N2:   Clone + 'static,
-          L2::MapH: Clone + 'static,
-          L2::MapR: Clone + 'static,
-          Local:    Domain<L2::N2>,
-    {
-        self.then_lift(l)
+    fn then_lift<L2>(self, l: L2) -> Self::With<L2> {
+        Stage2Pipeline::then_lift(self, l)
     }
 }

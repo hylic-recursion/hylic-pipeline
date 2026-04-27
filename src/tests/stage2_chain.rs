@@ -1,5 +1,7 @@
 //! Stage-2 then_lift + the five algebra sugars.
 
+#[allow(unused_imports)]
+use crate::Stage2SugarsShared;
 use std::sync::Arc;
 use crate::{SeedPipeline};
 use hylic::domain::shared::{self as dom, fold::fold};

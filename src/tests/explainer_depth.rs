@@ -2,6 +2,8 @@
 //! Same baseline R regardless of where Explainer sits; trace
 //! content differs. Also exercises nested Explainer composition.
 
+#[allow(unused_imports)]
+use crate::Stage2SugarsShared;
 use std::sync::Arc;
 use crate::{SeedPipeline};
 use hylic::domain::shared::{self as dom, fold::fold};

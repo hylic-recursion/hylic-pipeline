@@ -1,5 +1,7 @@
 //! The .lift() transition from Stage 1 to Stage 2.
 
+#[allow(unused_imports)]
+use crate::Stage2SugarsShared;
 use std::sync::Arc;
 use crate::{SeedPipeline, SeedSugarsShared};
 use crate::stage2::Stage2Pipeline;

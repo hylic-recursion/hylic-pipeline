@@ -6,6 +6,8 @@
 //! `Wrap`-driven dispatch (or sugar method selection) shows up as a
 //! type error, not a silent semantic drift.
 
+#[allow(unused_imports)]
+use crate::Stage2SugarsShared;
 use std::sync::Arc;
 use crate::SeedPipeline;
 use hylic::domain::shared::{self as dom, fold::fold};

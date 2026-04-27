@@ -5,6 +5,8 @@
 //! transition to LiftedSeedPipeline before Stage-2 sugars apply.
 //! TreeishPipeline retains the blanket auto-lift trait.
 
+#[allow(unused_imports)]
+use crate::Stage2SugarsShared;
 use std::sync::Arc;
 use crate::{
     SeedPipeline, TreeishPipeline, PipelineExec,

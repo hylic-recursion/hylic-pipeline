@@ -1,6 +1,8 @@
 //! Cookbook: combined Stage-1 + Stage-2 + SeedLift composition in a
 //! resolver-style flow.
 
+#[allow(unused_imports)]
+use crate::Stage2SugarsShared;
 use std::sync::Arc;
 use crate::{SeedPipeline, SeedSugarsShared};
 use hylic::domain::shared::{self as dom, fold::fold};

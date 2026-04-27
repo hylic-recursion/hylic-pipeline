@@ -2,6 +2,8 @@
 //! friction: reusing a pipeline across multiple runs; chaining two
 //! user-written lifts; a custom lift that changes both N and R.
 
+#[allow(unused_imports)]
+use crate::Stage2SugarsShared;
 use std::sync::Arc;
 use crate::{SeedPipeline, SeedSugarsShared};
 use hylic::domain::Domain;

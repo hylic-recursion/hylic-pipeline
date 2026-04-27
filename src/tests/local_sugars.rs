@@ -2,6 +2,8 @@
 //! Proves the per-D extension impl on LiftedPipeline gives Local
 //! users sugar parity with Shared.
 
+#[allow(unused_imports)]
+use crate::Stage2SugarsLocal;
 use std::cell::RefCell;
 use std::rc::Rc;
 

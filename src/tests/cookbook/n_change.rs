@@ -4,6 +4,8 @@
 //! `map_n_bi_lift` (as `map_node_bi` method) for bijective
 //! N-wrap.
 
+#[allow(unused_imports)]
+use crate::Stage2SugarsShared;
 use std::sync::Arc;
 use crate::{TreeishPipeline, PipelineExec, LiftedSugarsShared, TreeishSugarsShared};
 use hylic::domain::shared::{self as dom, fold::fold};

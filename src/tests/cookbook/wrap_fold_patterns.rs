@@ -3,6 +3,8 @@
 //! Demonstrates wrap_init, wrap_accumulate, wrap_finalize, zipmap
 //! against a realistic "Task with cost_ms" scenario.
 
+#[allow(unused_imports)]
+use crate::Stage2SugarsShared;
 use std::sync::Arc;
 use crate::{SeedPipeline};
 use hylic::domain::shared::{self as dom, fold::fold};

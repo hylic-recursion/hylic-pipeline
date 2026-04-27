@@ -31,10 +31,6 @@
 pub mod source;
 pub mod seed;
 pub mod treeish;
-#[allow(deprecated)]
-pub mod lifted;
-#[allow(deprecated)]
-pub mod lifted_seed;
 pub mod owned;
 pub mod sugars;
 pub mod stage2;
@@ -51,15 +47,15 @@ pub use source::{
 };
 pub use seed::SeedPipeline;
 pub use treeish::TreeishPipeline;
-#[allow(deprecated)]
-pub use lifted::LiftedPipeline;
-#[allow(deprecated)]
-pub use lifted_seed::LiftedSeedPipeline;
 pub use owned::OwnedPipeline;
 pub use sugars::{
     SeedSugarsShared, SeedSugarsLocal,
     TreeishSugarsShared, TreeishSugarsLocal,
-    LiftedSugarsShared, LiftedSugarsLocal,
+    Stage2SugarsShared, Stage2SugarsLocal,
 };
+#[allow(deprecated)]
+pub use sugars::{LiftedSugarsShared, LiftedSugarsLocal};
 pub use hylic::ops::SeedNode;
-pub use stage2::{Wrap, Identity, SeedWrap, Stage2Base, Stage2Pipeline};
+pub use stage2::{Wrap, Identity, SeedWrap, WrapShared, WrapLocal, Stage2Base, Stage2Pipeline};
+#[allow(deprecated)]
+pub use stage2::{LiftedPipeline, LiftedSeedPipeline};

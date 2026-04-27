@@ -1,6 +1,8 @@
 //! Cookbook: LiftBare — apply lifts directly to (treeish, fold) with
 //! no pipeline machinery.
 
+#[allow(unused_imports)]
+use crate::Stage2SugarsShared;
 use hylic::exec::funnel;
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::domain::Shared;

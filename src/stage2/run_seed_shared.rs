@@ -30,7 +30,7 @@ use hylic::ops::seed_node_internal as sn_int;
 
 use super::pipeline::Stage2Pipeline;
 use crate::seed::SeedPipeline;
-use crate::lifted_seed::gat_helpers::{
+use crate::stage2::gat_helpers::{
     shared_grow_as_arc, shared_arc_as_grow,
     shared_graph_as_edgy, shared_edgy_as_graph,
     shared_fold_as_concrete, shared_concrete_as_fold,

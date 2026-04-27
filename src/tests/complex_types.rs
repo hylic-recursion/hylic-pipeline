@@ -9,6 +9,8 @@
 //! All under Funnel to exercise the Send+Sync + cross-thread pathway
 //! for realistic payloads.
 
+#[allow(unused_imports)]
+use crate::Stage2SugarsShared;
 use std::collections::HashMap;
 use std::sync::Arc;
 

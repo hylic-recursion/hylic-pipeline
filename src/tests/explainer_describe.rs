@@ -2,6 +2,8 @@
 //! transparent R. Under Option B the chain is typed at
 //! `SeedNode<N>`; Entry is a first-class value of the node type.
 
+#[allow(unused_imports)]
+use crate::Stage2SugarsShared;
 use std::sync::{Arc, Mutex};
 use crate::SeedPipeline;
 use hylic::domain::shared::{self as dom, fold::fold};

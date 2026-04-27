@@ -14,15 +14,17 @@
 
 pub use hylic::prelude::*;
 
-#[allow(deprecated)]
 pub use crate::{
     SeedPipeline, TreeishPipeline, Stage2Pipeline,
-    LiftedPipeline, LiftedSeedPipeline,  // deprecated aliases of Stage2Pipeline
     OwnedPipeline,
     TreeishSource,
     PipelineExec, PipelineExecOnce,
     PipelineSourceOnce,
     SeedSugarsShared, SeedSugarsLocal,
     TreeishSugarsShared, TreeishSugarsLocal,
-    LiftedSugarsShared, LiftedSugarsLocal,
+    Stage2SugarsShared, Stage2SugarsLocal,
 };
+
+// Deprecated aliases — Phase 11 retires.
+#[allow(deprecated)]
+pub use crate::{LiftedPipeline, LiftedSeedPipeline, LiftedSugarsShared, LiftedSugarsLocal};

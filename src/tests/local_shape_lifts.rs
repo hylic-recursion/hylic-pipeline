@@ -10,6 +10,8 @@
 //! …> that composes into a Local pipeline and runs under Fused.
 //! The wrapper `w` captures non-Send state (an `Rc<RefCell<_>>`).
 
+#[allow(unused_imports)]
+use crate::Stage2SugarsLocal;
 use std::cell::RefCell;
 use std::rc::Rc;
 

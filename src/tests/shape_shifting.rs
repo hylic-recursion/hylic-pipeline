@@ -2,6 +2,8 @@
 //! rewrites that intuitively "should just work" if the typestate
 //! and transformations do their jobs.
 
+#[allow(unused_imports)]
+use crate::Stage2SugarsShared;
 use std::sync::Arc;
 use crate::{SeedPipeline, SeedSugarsShared};
 use hylic::domain::shared::{self as dom, fold::fold};

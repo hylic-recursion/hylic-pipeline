@@ -2,6 +2,8 @@
 //! subset of `intuitive_reuse.rs` / `shape_shifting.rs` / `power_user.rs`
 //! against Local storage, proving parity with Shared.
 
+#[allow(unused_imports)]
+use crate::Stage2SugarsLocal;
 use std::rc::Rc;
 use crate::SeedPipeline;
 use hylic::domain::{local, Local};

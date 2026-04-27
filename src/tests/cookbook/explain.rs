@@ -1,5 +1,7 @@
 //! Cookbook: explainer_lift / explainer_describe_lift.
 
+#[allow(unused_imports)]
+use crate::Stage2SugarsShared;
 use std::sync::{Arc, Mutex};
 use crate::SeedPipeline;
 use hylic::domain::shared::{self as dom, fold::fold};
