@@ -1,15 +1,16 @@
 //! `Stage2Pipeline<Base, L>` — the unified Stage-2 typestate.
 //!
 //! Wraps a Stage-1 `Base` source with a single lift `L` (usually a
-//! `ComposedLift` tree built from sugar chaining). Replaces both the
-//! old `Stage2Pipeline` (TreeishPipeline-rooted) and `Stage2Pipeline`
-//! (SeedPipeline-rooted) with a single struct distinguished only by
-//! which `Base` it wraps and which `.run` is callable.
+//! `ComposedLift` tree built from sugar chaining). Treeish-rooted and
+//! seed-rooted chains share this struct; they differ only in which
+//! `Base` is wrapped and which `.run` is callable.
 //!
 //! The chain's input N is `<Base::Wrap as Wrap>::Of<UN>` —
 //! `UN` for treeish-rooted bases (`Identity` wrap), `SeedNode<UN>` for
-//! seed-rooted bases (`SeedWrap`). Sugars dispatch user closures over
-//! `&UN` via `Base::Wrap::project`.
+//! seed-rooted bases (`SeedWrap`). Sugars dispatch user closures via
+//! the per-domain `WrapShared`/`WrapLocal::build_*` methods, which peel
+//! `SeedNode::Node(_)` on `SeedWrap` impls and pass-through on
+//! `Identity`.
 
 use hylic::ops::IdentityLift;
 
