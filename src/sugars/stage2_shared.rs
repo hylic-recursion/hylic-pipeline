@@ -46,6 +46,7 @@ where
 
     // ── fold-side sugars ─────────────────────────────────────
 
+    // ANCHOR: stage2_sugars_wrap_init
     fn wrap_init<W>(self, w: W) -> Self::With<ShapeLift<Shared,
         <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>, H, R,
         <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>, H, R>>
@@ -56,6 +57,7 @@ where
     {
         self.then_lift(<<Self::Base as Stage2Base>::Wrap as WrapShared>::build_wrap_init::<UN, H, R, _>(w))
     }
+    // ANCHOR_END: stage2_sugars_wrap_init
 
     fn wrap_accumulate<W>(self, w: W) -> Self::With<ShapeLift<Shared,
         <<Self::Base as Stage2Base>::Wrap as Wrap>::Of<UN>, H, R,

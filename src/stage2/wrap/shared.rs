@@ -30,6 +30,7 @@ use super::{Identity, SeedWrap, Wrap};
 /// Implemented by every `Wrap` (currently `Identity` + `SeedWrap`).
 #[allow(missing_docs)] // method docs live on the trait — bodies are mechanical
 pub trait WrapShared: Wrap {
+    // ANCHOR: wrap_shared_build_init_signature
     fn build_wrap_init<UN, H, R, W>(w: W)
         -> ShapeLift<Shared, Self::Of<UN>, H, R, Self::Of<UN>, H, R>
     where
@@ -38,6 +39,7 @@ pub trait WrapShared: Wrap {
         R:  Clone + Send + Sync + 'static,
         Self::Of<UN>: Clone + Send + Sync + 'static,
         W: Fn(&UN, &dyn Fn(&UN) -> H) -> H + Send + Sync + 'static;
+    // ANCHOR_END: wrap_shared_build_init_signature
 
     fn build_wrap_accumulate<UN, H, R, W>(w: W)
         -> ShapeLift<Shared, Self::Of<UN>, H, R, Self::Of<UN>, H, R>
@@ -147,6 +149,7 @@ pub trait WrapShared: Wrap {
 
 // ── Identity impl: pass-through ────────────────────────────────
 
+// ANCHOR: identity_build_wrap_init
 impl WrapShared for Identity {
     fn build_wrap_init<UN, H, R, W>(w: W)
         -> ShapeLift<Shared, UN, H, R, UN, H, R>
@@ -156,8 +159,9 @@ impl WrapShared for Identity {
         R:  Clone + Send + Sync + 'static,
         W: Fn(&UN, &dyn Fn(&UN) -> H) -> H + Send + Sync + 'static,
     {
-        Shared::wrap_init_lift::<UN, H, R, _>(w)
+        Shared::wrap_init_lift::<UN, H, R, _>(w)   // pass-through
     }
+// ANCHOR_END: identity_build_wrap_init
 
     fn build_wrap_accumulate<UN, H, R, W>(w: W)
         -> ShapeLift<Shared, UN, H, R, UN, H, R>
@@ -286,6 +290,7 @@ impl WrapShared for Identity {
 
 // ── SeedWrap impl: peel SeedNode::Node, pass EntryRoot through ─
 
+// ANCHOR: seedwrap_build_wrap_init
 impl WrapShared for SeedWrap {
     fn build_wrap_init<UN, H, R, W>(w: W)
         -> ShapeLift<Shared, SeedNode<UN>, H, R, SeedNode<UN>, H, R>
@@ -296,6 +301,7 @@ impl WrapShared for SeedWrap {
         W: Fn(&UN, &dyn Fn(&UN) -> H) -> H + Send + Sync + 'static,
     {
         let user = Arc::new(w);
+        // Adapter for the SeedNode<UN>-typed chain: peel Node(_), pass EntryRoot.
         let lifted = move |ln: &SeedNode<UN>,
                            orig: &dyn Fn(&SeedNode<UN>) -> H| -> H
         {
@@ -309,6 +315,7 @@ impl WrapShared for SeedWrap {
         };
         Shared::wrap_init_lift::<SeedNode<UN>, H, R, _>(lifted)
     }
+// ANCHOR_END: seedwrap_build_wrap_init
 
     fn build_wrap_accumulate<UN, H, R, W>(w: W)
         -> ShapeLift<Shared, SeedNode<UN>, H, R, SeedNode<UN>, H, R>
