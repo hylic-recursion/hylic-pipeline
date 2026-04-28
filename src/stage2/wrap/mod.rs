@@ -21,6 +21,9 @@
 
 use hylic::ops::SeedNode;
 
+pub mod shared;
+pub mod local;
+
 // ANCHOR: wrap_trait
 /// Type-level dispatch for the chain's input N. Each
 /// [`Stage2Base`](super::Stage2Base) declares which `Wrap` it uses;

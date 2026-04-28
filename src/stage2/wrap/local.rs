@@ -12,7 +12,7 @@ use hylic::ops::{ShapeLift, SeedNode};
 use hylic::ops::seed_node_internal::{self as sn_int, SeedNodeInner};
 use hylic::prelude::explainer::{ExplainerHeap, ExplainerResult};
 
-use super::wrap::{Identity, SeedWrap, Wrap};
+use super::{Identity, SeedWrap, Wrap};
 
 // ── WrapLocal trait ────────────────────────────────────────────
 

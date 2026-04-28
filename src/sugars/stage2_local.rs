@@ -1,6 +1,6 @@
 //! Stage-2 Local sugars — the **unified** surface (Local mirror).
 //!
-//! Mirror of `lifted_shared.rs` with `Rc` storage and no `Send + Sync`
+//! Mirror of `stage2_shared.rs` with `Rc` storage and no `Send + Sync`
 //! bounds. Same Wrap-as-dispatcher pattern: each sugar method is a
 //! one-line forwarder through `<<Self::Base as Stage2Base>::Wrap as
 //! WrapLocal>::build_*::<…>(args)`.
@@ -15,7 +15,7 @@ use hylic::prelude::explainer::{ExplainerHeap, ExplainerResult};
 use crate::source::TreeishSource;
 use crate::treeish::TreeishPipeline;
 use crate::stage2::{Stage2Pipeline, Stage2Base, Wrap};
-use crate::stage2::wrap_local::WrapLocal;
+use crate::stage2::WrapLocal;
 
 // ── Trait ──────────────────────────────────────────────────────
 
@@ -179,7 +179,7 @@ where
 // ── Stage2Pipeline blanket impl ────────────────────────────────
 
 // Mirror of Stage2SugarsShared blanket impl with `Local` storage.
-// See `lifted_shared.rs` for design notes.
+// See `stage2_shared.rs` for design notes.
 impl<Base, L, UN, H, R> Stage2SugarsLocal<UN, H, R> for Stage2Pipeline<Base, L>
 where
     Base: Stage2Base + TreeishSource<Domain = Local>,

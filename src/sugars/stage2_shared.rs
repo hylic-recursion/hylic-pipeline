@@ -26,7 +26,7 @@ use hylic::prelude::explainer::{ExplainerHeap, ExplainerResult};
 use crate::source::TreeishSource;
 use crate::treeish::TreeishPipeline;
 use crate::stage2::{Stage2Pipeline, Stage2Base, Wrap};
-use crate::stage2::wrap_shared::WrapShared;
+use crate::stage2::WrapShared;
 
 // ── Trait ──────────────────────────────────────────────────────
 

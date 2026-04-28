@@ -16,9 +16,9 @@ use hylic::exec::Executor;
 use hylic::ops::{Lift, SeedNode, SeedLift, ShapeCapable, TreeOps};
 use hylic::ops::seed_node_internal as sn_int;
 
-use super::pipeline::Stage2Pipeline;
+use crate::stage2::Stage2Pipeline;
 use crate::seed::SeedPipeline;
-use crate::stage2::gat_helpers::{
+use super::gat_helpers::{
     local_grow_as_rc, local_rc_as_grow,
     local_graph_as_edgy, local_edgy_as_graph,
     local_fold_as_concrete, local_concrete_as_fold,

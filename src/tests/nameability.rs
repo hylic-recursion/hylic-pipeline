@@ -2,7 +2,7 @@
 //! type aliases. Proves the Arc-erasure claim via std::any::type_name.
 
 use crate::SeedPipeline;
-use crate::stage2::Stage2Pipeline;
+use crate::Stage2Pipeline;
 use hylic::domain::Shared;
 use hylic::ops::{ComposedLift, IdentityLift, ShapeLift};
 
