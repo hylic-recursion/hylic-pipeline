@@ -11,21 +11,24 @@ on `hylic` alone. If you want pipeline typestates with chainable
 sugars (`.wrap_init(…).zipmap(…)`), depend on `hylic-pipeline`.
 
 ```
-┌───────────────────────────────────────────┐
-│ hylic-pipeline                            │
-│   SeedPipeline / TreeishPipeline /         │
-│   LiftedPipeline / OwnedPipeline           │
-│   TreeishSource / SeedSource               │
-│   PipelineExec(Seed / Once)                │
-│   LiftedSugarsShared / LiftedSugarsLocal   │
-├───────────────────────────────────────────┤
-│ hylic  (core)                              │
-│   Domain (Shared / Local / Owned)          │
-│   Fold / Edgy / Executor                   │
-│   Lift / ShapeLift / SeedLift / LiftBare   │
-│   ShapeCapable / PureLift / ShareableLift  │
-│   Shared::wrap_init_lift, ::n_lift, …      │
-└───────────────────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│ hylic-pipeline                                   │
+│   SeedPipeline / TreeishPipeline /                │
+│   Stage2Pipeline<Base, L> / OwnedPipeline         │
+│   TreeishSource / Stage2Base / Stage2BaseSlice    │
+│   PipelineExec / PipelineExecOnce                 │
+│   SeedSugars{Shared,Local} /                      │
+│   TreeishSugars{Shared,Local} /                   │
+│   Stage2Sugars{Shared,Local} (Wrap-dispatched)    │
+├──────────────────────────────────────────────────┤
+│ hylic  (core)                                     │
+│   Domain (Shared / Local / Owned)                 │
+│   Fold / Edgy / Executor                          │
+│   Lift / ShapeLift / SeedLift / LiftBare          │
+│   IdentityLift / ComposedLift / SeedNode          │
+│   ShapeCapable / PureLift / ShareableLift         │
+│   Shared::wrap_init_lift, ::n_lift, …             │
+└──────────────────────────────────────────────────┘
 ```
 
 ## Quick use
@@ -39,17 +42,24 @@ let pipeline = SeedPipeline::new(
     &fold(/* init, acc, fin over u32 */),
 );
 
+// No-sugar shorthand on SeedPipeline — empty .lift() elided:
+let r = pipeline.run_from_slice(&FUSED, &[0u32], 0u64);
+
+// With Stage-2 sugars — .lift() is the explicit Stage-1 → Stage-2
+// transition:
 let r = pipeline
-    .wrap_init(|n, orig| orig(n) + 1)      // auto-lifts (no .lift() ceremony)
+    .lift()
+    .wrap_init(|n, orig| orig(n) + 1)
     .zipmap(|r| r > 10)
     .run_from_slice(&exec(funnel::Spec::default(4)), &[0u32], 0u64);
 ```
 
 ## Sugar-trait import
 
-`LiftedSugarsShared` (and `LiftedSugarsLocal` for the Local variant)
-provide chainable sugar methods on any pipeline. `use
-hylic_pipeline::prelude::*;` brings them in.
+`Stage2SugarsShared` (and `Stage2SugarsLocal` for the Local variant)
+provide chainable sugar methods on every `Stage2Pipeline<Base, L>`,
+dispatched through `Wrap` so one body covers both treeish-rooted and
+seed-rooted bases. `use hylic_pipeline::prelude::*;` brings them in.
 
 See `examples/prelude_minimal.rs` for the smallest complete example.
 

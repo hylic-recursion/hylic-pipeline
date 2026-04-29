@@ -15,7 +15,7 @@ pub mod wrap;
 pub mod run;
 
 pub use pipeline::Stage2Pipeline;
-pub use base::Stage2Base;
+pub use base::{Stage2Base, Stage2BaseSlice};
 pub use wrap::{Wrap, Identity, SeedWrap};
 pub use wrap::shared::WrapShared;
 pub use wrap::local::WrapLocal;

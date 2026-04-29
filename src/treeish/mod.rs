@@ -7,6 +7,7 @@ use hylic::domain::Domain;
 
 pub mod reshape;
 pub mod source;
+pub mod stage2_base;
 
 // ANCHOR: treeish_pipeline_struct
 /// Stage-1 typestate pipeline with two base slots: `treeish`

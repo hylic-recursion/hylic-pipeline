@@ -80,7 +80,7 @@ fn struct_n_string_seeds_vec_result_under_funnel() {
 
     let r = SeedPipeline::<hylic::domain::Shared, Module, String, ModReport, ModReport>::new(
         grow, seeds, &report_fold,
-    ).lift().run_from_slice(
+    ).run_from_slice(
         &dom::exec(funnel::Spec::default(4)),
         &["app".to_string()],
         ModReport::default(),

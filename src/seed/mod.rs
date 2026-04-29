@@ -6,6 +6,9 @@ use hylic::domain::Domain;
 
 pub mod reshape;
 pub mod source;
+pub mod stage2_base_shared;
+pub mod stage2_base_local;
+pub mod run;
 
 // ANCHOR: seed_pipeline_struct
 /// Stage-1 typestate pipeline with three base slots: `grow`,

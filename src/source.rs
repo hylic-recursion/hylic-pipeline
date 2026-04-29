@@ -1,19 +1,20 @@
 //! Pipeline source traits and execution extensions.
 //!
-//! Under Option B (post-`project-entry-refactor`), the seed path is
-//! a distinct type (`Stage2Pipeline`) with inherent methods, not
-//! a trait-level concern. `source.rs` carries only the seedless
-//! abstractions:
+//! `source.rs` carries the seedless abstractions:
 //!
 //!   - `TreeishSource`              — yield `(treeish, fold)` by reference
 //!   - `PipelineSourceOnce`         — yield them by value (consuming)
 //!   - `PipelineExec: TreeishSource` — `run_from_node`
 //!   - `PipelineExecOnce: PipelineSourceOnce` — `run_from_node_once`
 //!
-//! `SeedSource` / `PipelineExecSeed` / `with_seeded` have been
-//! removed: `SeedPipeline::lift()` transitions directly to
-//! `Stage2Pipeline`, whose `.run` captures
-//! seeds and assembles `SeedLift` as the first lift in the chain.
+//! Seed-rooted execution lives elsewhere: `SeedPipeline` and
+//! `Stage2Pipeline<SeedPipeline<…>, L>` carry their own inherent
+//! `.run` / `.run_from_slice`, dispatched through the
+//! `Stage2Base` + `Stage2BaseSlice` traits in
+//! [`crate::stage2::base`]. The unified body lives in
+//! [`crate::stage2::run`]; per-domain SeedLift construction lives in
+//! [`crate::seed::stage2_base_shared`] /
+//! [`crate::seed::stage2_base_local`].
 
 use hylic::exec::Executor;
 use hylic::domain::Domain;

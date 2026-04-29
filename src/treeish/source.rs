@@ -1,7 +1,8 @@
-//! TreeishPipeline impls `TreeishSource` only. It is Seed-agnostic
-//! by construction and intentionally does NOT provide `SeedSource`
-//! — calling `.run(exec, entry_seeds, entry_heap)` on it is a
-//! compile-time error rather than a runtime panic.
+//! TreeishPipeline impls `TreeishSource` and exposes `.lift()`.
+//! Execution comes from the `PipelineExec::run_from_node` blanket on
+//! `TreeishSource`; the seed-rooted `.run(exec, seeds, heap)` is
+//! intentionally not in scope — calling it on a TreeishPipeline is a
+//! compile-time error.
 
 use hylic::domain::Domain;
 use hylic::ops::IdentityLift;

@@ -10,7 +10,7 @@
 //! atoms, explainer helpers) PLUS pipeline types
 //! (`SeedPipeline`, `Stage2Pipeline`, `TreeishPipeline`,
 //! `OwnedPipeline`), source traits (`TreeishSource`, `PipelineExec`),
-//! and sugar traits (`SeedSugars*`, `TreeishSugars*`, `LiftedSugars*`).
+//! and sugar traits (`SeedSugars*`, `TreeishSugars*`, `Stage2Sugars*`).
 
 pub use hylic::prelude::*;
 

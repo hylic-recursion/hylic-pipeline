@@ -1,10 +1,9 @@
 //! SeedPipeline's `TreeishSource` impl — fuses grow + seeds_from_node
 //! into a plain `Graph<N>` at yield time so the seed structure can be
-//! traversed by a `run_from_node` executor.
+//! consumed by the unified Stage-2 run body
+//! ([`crate::stage2::run`]) without re-fusing per call.
 //!
-//! The seed axis as a *lift-chain* input is handled by
-//! `Stage2Pipeline`. `SeedSource` and
-//! `with_seeded` were removed by the Option-B pivot.
+//! Plus the `.lift()` Stage-1 → Stage-2 transition.
 
 use hylic::domain::Domain;
 use hylic::ops::{IdentityLift, SeedNode, ShapeCapable};
