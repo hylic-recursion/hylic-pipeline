@@ -5,11 +5,11 @@ All notable changes to `hylic-pipeline` are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] — 2026-05 (pending release)
+## [0.8.0] — 2026-05 (pending release)
 
-The first stable release. `hylic-pipeline` was extracted from
-the `hylic` core during the 0.x period; this entry records the
-pipeline-specific milestones of that evolution.
+The first tagged release. `hylic-pipeline` was extracted from
+the `hylic` core during early development; this entry records
+the pipeline-specific milestones of that evolution.
 
 ### Added
 

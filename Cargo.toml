@@ -1,6 +1,6 @@
 [package]
 name = "hylic-pipeline"
-version = "0.1.0"
+version = "0.8.0"
 edition = "2021"
 rust-version = "1.75"
 description = "Typestate pipelines and sugar traits over hylic lifts."
@@ -18,7 +18,7 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
-hylic = { path = "../hylic", version = "0.1.0" }
+hylic = { path = "../hylic", version = "0.8" }
 either = "1.15.0"
 
 [dev-dependencies]
