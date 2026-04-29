@@ -9,28 +9,17 @@ on:
 env:
   CARGO_TERM_COLOR: always
 
-# hylic-pipeline depends on hylic via path = "../hylic". CI co-checks
-# out hylic alongside hylic-pipeline so cargo's path-deps resolve
-# without needing hylic to be on crates.io yet.
+# hylic-pipeline depends on hylic via path + version. cargo resolves
+# path locally; standalone clones fall through to crates.io. The CI
+# expects hylic to be on crates.io — the first push will be red
+# until the v0.8 publish chain reaches this crate.
 
 jobs:
   check:
     name: cargo check
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout hylic-pipeline
-        uses: actions/checkout@v4
-        with:
-          path: hylic-pipeline
-      - name: Checkout hylic
-        uses: actions/checkout@v4
-        with:
-          repository: simlei/hylic
-          path: hylic
+      - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: hylic-pipeline
-      - name: cargo check
-        working-directory: hylic-pipeline
-        run: cargo check --all-targets
+      - run: cargo check --all-targets
