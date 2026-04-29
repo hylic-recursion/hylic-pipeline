@@ -18,7 +18,7 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
-hylic = { path = "../hylic", version = "0.8" }
+hylic = "0.8"
 either = "1.15.0"
 
 [dev-dependencies]
