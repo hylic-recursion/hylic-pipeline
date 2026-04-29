@@ -24,7 +24,7 @@ use super::wrap::Wrap;
 /// `Wrap` selection plus the run-time machinery (pre-lift, root
 /// reference, run-input shape).
 ///
-/// Inherits `TreeishSource` so the (treeish<N>, fold<N,H,R>) pair is
+/// Inherits `TreeishSource` so the `(treeish<N>, fold<N, H, R>)` pair is
 /// yielded through one canonical path; `with_treeish` is the single
 /// place per-base storage shapes are read.
 ///

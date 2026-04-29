@@ -3,8 +3,8 @@
 //!
 //! - [`Stage2Pipeline<Base, L>`] is the unified Stage-2 typestate.
 //! - [`Wrap`] is the type-level dispatch trait for chain N wrapping.
-//! - [`wrap::WrapShared`] / [`wrap::WrapLocal`] add per-domain build
-//!   methods used by the unified Stage-2 sugar surface.
+//! - [`WrapShared`] / [`WrapLocal`] add per-domain build methods
+//!   used by the unified Stage-2 sugar surface.
 //! - [`Stage2Base`] connects Stage-1 bases to their `Wrap`.
 
 pub mod pipeline;
