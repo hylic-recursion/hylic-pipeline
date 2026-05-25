@@ -37,7 +37,7 @@ where Base: TreeishSource,
     ) -> T {
         self.base.with_treeish(|treeish, fold| {
             self.pre_lift.apply(treeish, fold,
-                |treeish_out, fold_out| cont(treeish_out, fold_out),
+                cont,
             )
         })
     }
