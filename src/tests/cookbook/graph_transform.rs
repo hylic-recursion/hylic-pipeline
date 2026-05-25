@@ -3,6 +3,8 @@
 //! Demonstrates filter_edges, wrap_visit, map_node_bi at Stage-2
 //! against a Module dependency graph.
 
+#![allow(clippy::type_complexity)]
+
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use crate::{TreeishPipeline, PipelineExec, Stage2SugarsShared, TreeishSugarsShared};
