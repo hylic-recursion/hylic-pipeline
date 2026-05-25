@@ -32,7 +32,7 @@ fn main() {
 
     println!("(prelude minimal) r = {r:?}");
     assert_eq!(r.0, 10);
-    assert_eq!(r.1, true);
+    assert!(r.1);
 
     // (4) Shared FUSED executor also available via prelude.
     let r2: u64 = TreeishPipeline::<Shared, u64, u64, u64>::new(
