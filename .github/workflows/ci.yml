@@ -2,27 +2,17 @@ name: CI
 
 on:
   push:
-    branches: [master, main]
+    branches: [master]
   pull_request:
-    branches: [master, main]
+    branches: [master]
 
-env:
-  CARGO_TERM_COLOR: always
-
-# hylic-pipeline depends on hylic via path + version. cargo resolves
-# path locally; standalone clones fall through to crates.io. The CI
-# expects hylic to be on crates.io — the first push will be red
-# until the v0.8 publish chain reaches this crate.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  check:
-    name: cargo check + clippy
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo check --all-targets
-      - run: cargo clippy --all-targets -- -D warnings
+  ci:
+    uses: hylic-recursion/.github/.github/workflows/rust-ci.yml@master
+    with:
+      test: |
+        cargo test
