@@ -20,7 +20,7 @@ use hylic::ops::IdentityLift;
 /// `Stage2Base` and `Wrap` traits in this module.
 #[must_use]
 pub struct Stage2Pipeline<Base, L = IdentityLift> {
-    pub(crate) base:     Base,
+    pub(crate) base: Base,
     pub(crate) pre_lift: L,
 }
 // ANCHOR_END: stage2_pipeline_struct
@@ -34,7 +34,7 @@ impl<Base, L> Stage2Pipeline<Base, L> {
 impl<Base: Clone, L: Clone> Clone for Stage2Pipeline<Base, L> {
     fn clone(&self) -> Self {
         Stage2Pipeline {
-            base:     self.base.clone(),
+            base: self.base.clone(),
             pre_lift: self.pre_lift.clone(),
         }
     }

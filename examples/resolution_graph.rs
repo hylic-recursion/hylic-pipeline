@@ -13,8 +13,8 @@
 
 use std::collections::HashMap;
 
-use hylic_pipeline::prelude::*;
 use hylic::graph::{Edgy, edgy_visit};
+use hylic_pipeline::prelude::*;
 
 #[derive(Clone, Debug)]
 #[allow(dead_code)] // `name` is read by the `{:?}` derive; the example does not log it directly
@@ -27,17 +27,22 @@ fn main() {
     // The registry — in a real system this would be a filesystem
     // scan, a lockfile, an HTTP API, etc.
     let registry: HashMap<String, Module> = [
-        ("app",  vec!["db", "http", "log"]),
-        ("db",   vec!["log"]),
+        ("app", vec!["db", "http", "log"]),
+        ("db", vec!["log"]),
         ("http", vec!["tls", "log"]),
-        ("tls",  vec!["log"]),
-        ("log",  vec![] as Vec<&'static str>),
+        ("tls", vec!["log"]),
+        ("log", vec![] as Vec<&'static str>),
     ]
     .into_iter()
-    .map(|(name, deps)| (
-        name.to_string(),
-        Module { name: name.to_string(), deps: deps.iter().map(|s| s.to_string()).collect() },
-    ))
+    .map(|(name, deps)| {
+        (
+            name.to_string(),
+            Module {
+                name: name.to_string(),
+                deps: deps.iter().map(|s| s.to_string()).collect(),
+            },
+        )
+    })
     .collect();
 
     // Grow: resolve a name to a Module record.
@@ -49,10 +54,13 @@ fn main() {
     };
 
     // seeds_from_node: a Module yields its dependencies as next-level seeds.
-    let children: Edgy<Module, String> =
-        edgy_visit(|m: &Module, cb: &mut dyn FnMut(&String)| {
-            for dep in &m.deps { cb(dep); }
-        });
+    let children: Edgy<Module, String> = edgy_visit(
+        |m: &Module, cb: &mut dyn FnMut(&String)| {
+            for dep in &m.deps {
+                cb(dep);
+            }
+        },
+    );
 
     // Fold: count modules (1 per node plus each child's subtree count),
     // deduplication happens at the level of memoisation if desired.
@@ -63,15 +71,17 @@ fn main() {
     );
 
     // Assemble the pipeline.
-    let pipeline: SeedPipeline<Shared, Module, String, u64, u64> =
-        SeedPipeline::new(grow, children, &count);
+    let pipeline: SeedPipeline<Shared, Module, String, u64, u64> = SeedPipeline::new(grow, children, &count);
 
     // Run. Each reachable (dependent, dep) edge contributes one
     // visit to the fold, so shared modules (here `log`) are counted
     // once per edge: app(1) + db(1) + log(1) + http(1) + tls(1) +
     // log(1) + log(1) + log(1) = 8 visits. See below for how to
     // collapse them.
-    let total_visits: u64 = pipeline.clone().lift().run_from_slice(&FUSED, &["app".to_string()], 0);
+    let total_visits: u64 = pipeline
+        .clone()
+        .lift()
+        .run_from_slice(&FUSED, &["app".to_string()], 0);
 
     println!("total visits (with repetition) = {total_visits}");
     assert_eq!(total_visits, 8);

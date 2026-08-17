@@ -1,21 +1,34 @@
 //! TreeishPipeline — the honest-base typestate for users who have
 //! a Treeish<N> directly.
 
-use crate::{TreeishPipeline, PipelineExec, Stage2SugarsShared};
+use crate::{PipelineExec, Stage2SugarsShared, TreeishPipeline};
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
 use hylic::graph::treeish;
 
 #[derive(Clone)]
-struct N { val: u64, children: Vec<N> }
+struct N {
+    val: u64,
+    children: Vec<N>,
+}
 
 fn tree_fixture() -> N {
-    N { val: 1, children: vec![
-        N { val: 2, children: vec![
-            N { val: 4, children: vec![] },
-        ]},
-        N { val: 3, children: vec![] },
-    ]}
+    N {
+        val: 1,
+        children: vec![
+            N {
+                val: 2,
+                children: vec![N {
+                    val: 4,
+                    children: vec![],
+                }],
+            },
+            N {
+                val: 3,
+                children: vec![],
+            },
+        ],
+    }
 }
 
 #[test]
@@ -28,7 +41,10 @@ fn run_from_node_on_bare_treeish() {
         |h: &u64| *h,
     );
     let pipeline = TreeishPipeline::new(tree_graph, &base_fold);
-    let r = pipeline.run_from_node(&dom::exec(funnel::Spec::default(4)), &tree_fixture());
+    let r = pipeline.run_from_node(
+        &dom::exec(funnel::Spec::default(4)),
+        &tree_fixture(),
+    );
     // 4 + 2 + 3 + 1 = 10.
     assert_eq!(r, 10);
 }
@@ -44,7 +60,10 @@ fn reshape_preserves_structure() {
     );
     let r = TreeishPipeline::new(tree_graph, &base_fold)
         .reshape::<N, u64, u64, _, _>(|t| t, |f| f)
-        .run_from_node(&dom::exec(funnel::Spec::default(4)), &tree_fixture());
+        .run_from_node(
+            &dom::exec(funnel::Spec::default(4)),
+            &tree_fixture(),
+        );
     assert_eq!(r, 10);
 }
 
@@ -60,6 +79,9 @@ fn lift_and_zipmap() {
     let r: (u64, bool) = TreeishPipeline::new(tree_graph, &base_fold)
         .lift()
         .zipmap(|r: &u64| *r > 5)
-        .run_from_node(&dom::exec(funnel::Spec::default(4)), &tree_fixture());
+        .run_from_node(
+            &dom::exec(funnel::Spec::default(4)),
+            &tree_fixture(),
+        );
     assert_eq!(r, (10, true));
 }

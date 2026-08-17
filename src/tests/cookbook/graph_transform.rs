@@ -5,22 +5,28 @@
 
 #![allow(clippy::type_complexity)]
 
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-use crate::{TreeishPipeline, PipelineExec, Stage2SugarsShared, TreeishSugarsShared};
+use crate::{PipelineExec, Stage2SugarsShared, TreeishPipeline, TreeishSugarsShared};
+use hylic::domain::Shared;
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
 use hylic::graph::treeish;
-use hylic::domain::Shared;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 struct ModuleId(String);
 
 fn registry() -> Arc<HashMap<ModuleId, Vec<ModuleId>>> {
     let mut m: HashMap<ModuleId, Vec<ModuleId>> = HashMap::new();
-    m.insert(ModuleId("app".into()),  vec![ModuleId("db".into()), ModuleId("heavy".into())]);
-    m.insert(ModuleId("db".into()),   vec![]);
-    m.insert(ModuleId("heavy".into()), vec![ModuleId("db".into())]);
+    m.insert(
+        ModuleId("app".into()),
+        vec![ModuleId("db".into()), ModuleId("heavy".into())],
+    );
+    m.insert(ModuleId("db".into()), vec![]);
+    m.insert(
+        ModuleId("heavy".into()),
+        vec![ModuleId("db".into())],
+    );
     Arc::new(m)
 }
 
@@ -38,15 +44,19 @@ fn base_pipeline() -> TreeishPipeline<Shared, ModuleId, u32, u32> {
 #[test]
 fn filter_edges_excludes_heavy_deps() {
     let root = ModuleId("app".into());
-    let full: u32 = base_pipeline()
-        .lift()
-        .run_from_node(&dom::exec(funnel::Spec::default(4)), &root);
+    let full: u32 = base_pipeline().lift().run_from_node(
+        &dom::exec(funnel::Spec::default(4)),
+        &root,
+    );
     assert_eq!(full, 4); // app + db + heavy + db-under-heavy = 4
 
     let filtered: u32 = base_pipeline()
         .lift()
         .filter_edges(|m: &ModuleId| m.0 != "heavy")
-        .run_from_node(&dom::exec(funnel::Spec::default(4)), &root);
+        .run_from_node(
+            &dom::exec(funnel::Spec::default(4)),
+            &root,
+        );
     assert_eq!(filtered, 2); // app + db
 }
 
@@ -58,13 +68,20 @@ fn wrap_visit_counts_edges_explored() {
     let root = ModuleId("app".into());
     let _r: u32 = base_pipeline()
         .lift()
-        .wrap_visit(move |n: &ModuleId, cb: &mut dyn FnMut(&ModuleId),
-                          orig: &dyn Fn(&ModuleId, &mut dyn FnMut(&ModuleId))| {
-            let mut local = 0u32;
-            orig(n, &mut |c: &ModuleId| { local += 1; cb(c); });
-            *visits_for_closure.lock().unwrap() += local;
-        })
-        .run_from_node(&dom::exec(funnel::Spec::default(4)), &root);
+        .wrap_visit(
+            move |n: &ModuleId, cb: &mut dyn FnMut(&ModuleId), orig: &dyn Fn(&ModuleId, &mut dyn FnMut(&ModuleId))| {
+                let mut local = 0u32;
+                orig(n, &mut |c: &ModuleId| {
+                    local += 1;
+                    cb(c);
+                });
+                *visits_for_closure.lock().unwrap() += local;
+            },
+        )
+        .run_from_node(
+            &dom::exec(funnel::Spec::default(4)),
+            &root,
+        );
 
     // Edges visited: app→{db, heavy} (2) + heavy→{db} (1) + db→{} + db→{} = 3
     assert_eq!(*visits.lock().unwrap(), 3);
@@ -81,6 +98,9 @@ fn contramap_node_at_stage2_wraps_in_newtype() {
             |m: &ModuleId| Tagged(m.clone()),
             |t: &Tagged| t.0.clone(),
         )
-        .run_from_node(&dom::exec(funnel::Spec::default(4)), &root);
+        .run_from_node(
+            &dom::exec(funnel::Spec::default(4)),
+            &root,
+        );
     assert_eq!(r, 4);
 }

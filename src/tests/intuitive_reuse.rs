@@ -4,27 +4,36 @@
 
 #[allow(unused_imports)]
 use crate::Stage2SugarsShared;
-use std::sync::Arc;
 use crate::{SeedPipeline, SeedSugarsShared};
 use hylic::domain::Domain;
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
 use hylic::graph::edgy_visit;
 use hylic::ops::Lift;
+use std::sync::Arc;
 
 fn basic() -> SeedPipeline<hylic::domain::Shared, u64, u64, u64, u64> {
     let ch: Arc<Vec<Vec<u64>>> = Arc::new(vec![
-        vec![1, 2], vec![3], vec![], vec![],
-        vec![1],    // node 4: one child (1)
+        vec![1, 2],
+        vec![3],
+        vec![],
+        vec![],
+        vec![1], // node 4: one child (1)
     ]);
     let base_fold = fold(
         |n: &u64| *n,
         |h: &mut u64, c: &u64| *h += c,
         |h: &u64| *h,
     );
-    let seeds = edgy_visit(move |n: &u64, cb: &mut dyn FnMut(&u64)| {
-        if let Some(kids) = ch.get(*n as usize) { for k in kids { cb(k); } }
-    });
+    let seeds = edgy_visit(
+        move |n: &u64, cb: &mut dyn FnMut(&u64)| {
+            if let Some(kids) = ch.get(*n as usize) {
+                for k in kids {
+                    cb(k);
+                }
+            }
+        },
+    );
     SeedPipeline::new(|s: &u64| *s, seeds, &base_fold)
 }
 
@@ -33,16 +42,28 @@ fn reuse_pipeline_across_runs() {
     // Same pipeline, two entry-seed sets, both succeed independently.
     let pipe = basic();
 
-    let r1 = pipe.run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
+    let r1 = pipe.run_from_slice(
+        &dom::exec(funnel::Spec::default(4)),
+        &[0u64],
+        0u64,
+    );
     // 0 + 1 + 2 + 3 = 6.
     assert_eq!(r1, 6);
 
-    let r2 = pipe.run_from_slice(&dom::exec(funnel::Spec::default(4)), &[4u64], 0u64);
+    let r2 = pipe.run_from_slice(
+        &dom::exec(funnel::Spec::default(4)),
+        &[4u64],
+        0u64,
+    );
     // 4 + 1 + 3 = 8. (ch[4] = [1]; ch[1] = [3]; ch[3] = [].)
     assert_eq!(r2, 8);
 
     // Original pipe is still usable — the shorthand clones internally.
-    let r3 = pipe.run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64, 4u64], 0u64);
+    let r3 = pipe.run_from_slice(
+        &dom::exec(funnel::Spec::default(4)),
+        &[0u64, 4u64],
+        0u64,
+    );
     // 6 + 8 = 14.
     assert_eq!(r3, 14);
 }
@@ -53,21 +74,23 @@ fn two_user_lifts_in_series() {
     // library shape-lifts; each is declared in this test.
 
     #[derive(Clone, Copy)]
-    struct AddToR(u64);   // Adds its constant to every R accumulate.
+    struct AddToR(u64); // Adds its constant to every R accumulate.
 
     use hylic::domain::Shared;
     impl<N, H, R> Lift<Shared, N, H, R> for AddToR
-    where N: Clone + 'static, H: Clone + 'static, R: Clone + Into<u64> + From<u64> + 'static,
+    where
+        N: Clone + 'static,
+        H: Clone + 'static,
+        R: Clone + Into<u64> + From<u64> + 'static,
     {
-        type N2 = N; type MapH = H; type MapR = R;
+        type N2 = N;
+        type MapH = H;
+        type MapR = R;
         fn apply<T>(
             &self,
             treeish: <Shared as Domain<N>>::Graph<N>,
             fold_in: <Shared as Domain<N>>::Fold<H, R>,
-            cont: impl FnOnce(
-                <Shared as Domain<N>>::Graph<N>,
-                <Shared as Domain<N>>::Fold<H, R>,
-            ) -> T,
+            cont: impl FnOnce(<Shared as Domain<N>>::Graph<N>, <Shared as Domain<N>>::Fold<H, R>) -> T,
         ) -> T {
             let addend = self.0;
             let wrapped = fold_in.wrap_finalize(move |h, orig| {
@@ -83,17 +106,19 @@ fn two_user_lifts_in_series() {
     struct MulByTwo;
 
     impl<N, H, R> Lift<Shared, N, H, R> for MulByTwo
-    where N: Clone + 'static, H: Clone + 'static, R: Clone + Into<u64> + From<u64> + 'static,
+    where
+        N: Clone + 'static,
+        H: Clone + 'static,
+        R: Clone + Into<u64> + From<u64> + 'static,
     {
-        type N2 = N; type MapH = H; type MapR = R;
+        type N2 = N;
+        type MapH = H;
+        type MapR = R;
         fn apply<T>(
             &self,
             treeish: <Shared as Domain<N>>::Graph<N>,
             fold_in: <Shared as Domain<N>>::Fold<H, R>,
-            cont: impl FnOnce(
-                <Shared as Domain<N>>::Graph<N>,
-                <Shared as Domain<N>>::Fold<H, R>,
-            ) -> T,
+            cont: impl FnOnce(<Shared as Domain<N>>::Graph<N>, <Shared as Domain<N>>::Fold<H, R>) -> T,
         ) -> T {
             let wrapped = fold_in.wrap_finalize(move |h, orig| {
                 let r: R = orig(h);
@@ -133,7 +158,11 @@ fn two_user_lifts_in_series() {
         .lift()
         .then_lift(AddToR(100))
         .then_lift(MulByTwo)
-        .run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
+        .run_from_slice(
+            &dom::exec(funnel::Spec::default(4)),
+            &[0u64],
+            0u64,
+        );
     assert_eq!(r, 3872);
 }
 
@@ -153,7 +182,11 @@ fn lift_that_changes_both_n_and_r() {
             |r: &u64| format!("sum={r}"),
             |s: &String| s.strip_prefix("sum=").unwrap().parse::<u64>().unwrap(),
         )
-        .run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
+        .run_from_slice(
+            &dom::exec(funnel::Spec::default(4)),
+            &[0u64],
+            0u64,
+        );
 
     // After map_node_bi, N is N2 at the traversal level; the
     // fold still operates on the N=u64 value (via contramap back).

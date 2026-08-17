@@ -21,8 +21,8 @@
 
 use hylic::ops::SeedNode;
 
-pub mod shared;
 pub mod local;
+pub mod shared;
 
 // ANCHOR: wrap_trait
 /// Type-level dispatch for the chain's input N. Each

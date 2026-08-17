@@ -1,13 +1,16 @@
 //! Non-Send R under sequential executors — `run_from_node` accepts
 //! it; `run` / `run_from_slice` do not (they require Send+Sync).
 
-use std::rc::Rc;
-use crate::{TreeishPipeline, PipelineExec};
+use crate::{PipelineExec, TreeishPipeline};
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::graph::treeish;
+use std::rc::Rc;
 
 #[derive(Clone)]
-struct Node { val: u64, children: Vec<Node> }
+struct Node {
+    val: u64,
+    children: Vec<Node>,
+}
 
 /// Rc<T> is not Send. We build a Fold with R = Rc<u64>.
 #[test]
@@ -20,10 +23,19 @@ fn non_send_r_runs_via_run_from_node() {
         |h: &u64| Rc::new(*h),
     );
     let g = treeish(|n: &Node| n.children.clone());
-    let root = Node { val: 1, children: vec![
-        Node { val: 2, children: vec![] },
-        Node { val: 3, children: vec![] },
-    ]};
+    let root = Node {
+        val: 1,
+        children: vec![
+            Node {
+                val: 2,
+                children: vec![],
+            },
+            Node {
+                val: 3,
+                children: vec![],
+            },
+        ],
+    };
 
     // run_from_node: no Send bounds on R required.
     let r = TreeishPipeline::new(g, &f).run_from_node(&dom::FUSED, &root);

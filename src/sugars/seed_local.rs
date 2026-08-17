@@ -3,41 +3,54 @@
 
 #![allow(missing_docs)] // module-level: public items are per-domain/per-policy mirrors of documented primitives
 
-use std::rc::Rc;
+use crate::seed::SeedPipeline;
 use hylic::domain::Local;
 use hylic::domain::local::Fold;
 use hylic::domain::local::edgy::Edgy;
-use crate::seed::SeedPipeline;
+use std::rc::Rc;
 
 pub trait SeedSugarsLocal<N, Seed, H, R>: Sized
-where N: Clone + 'static, Seed: Clone + 'static,
-      H: Clone + 'static, R: Clone + 'static,
+where
+    N: Clone + 'static,
+    Seed: Clone + 'static,
+    H: Clone + 'static,
+    R: Clone + 'static,
 {
     fn filter_seeds<P>(self, pred: P) -> SeedPipeline<Local, N, Seed, H, R>
-    where P: Fn(&Seed) -> bool + 'static;
+    where
+        P: Fn(&Seed) -> bool + 'static;
 
     fn wrap_grow<W>(self, wrapper: W) -> SeedPipeline<Local, N, Seed, H, R>
-    where W: Fn(&Seed, &dyn Fn(&Seed) -> N) -> N + 'static;
+    where
+        W: Fn(&Seed, &dyn Fn(&Seed) -> N) -> N + 'static;
 
-    fn map_node_bi<N2, Co, Contra>(self, co: Co, contra: Contra)
-        -> SeedPipeline<Local, N2, Seed, H, R>
-    where N2: Clone + 'static,
-          Co:     Fn(&N) -> N2 + 'static,
-          Contra: Fn(&N2) -> N + 'static;
+    fn map_node_bi<N2, Co, Contra>(self, co: Co, contra: Contra) -> SeedPipeline<Local, N2, Seed, H, R>
+    where
+        N2: Clone + 'static,
+        Co: Fn(&N) -> N2 + 'static,
+        Contra: Fn(&N2) -> N + 'static;
 
-    fn map_seed_bi<Seed2, ToNew, FromNew>(self, to_new: ToNew, from_new: FromNew)
-        -> SeedPipeline<Local, N, Seed2, H, R>
-    where Seed2: Clone + 'static,
-          ToNew:   Fn(&Seed) -> Seed2 + 'static,
-          FromNew: Fn(&Seed2) -> Seed + 'static;
+    fn map_seed_bi<Seed2, ToNew, FromNew>(
+        self,
+        to_new: ToNew,
+        from_new: FromNew,
+    ) -> SeedPipeline<Local, N, Seed2, H, R>
+    where
+        Seed2: Clone + 'static,
+        ToNew: Fn(&Seed) -> Seed2 + 'static,
+        FromNew: Fn(&Seed2) -> Seed + 'static;
 }
 
 impl<N, Seed, H, R> SeedSugarsLocal<N, Seed, H, R> for SeedPipeline<Local, N, Seed, H, R>
-where N: Clone + 'static, Seed: Clone + 'static,
-      H: Clone + 'static, R: Clone + 'static,
+where
+    N: Clone + 'static,
+    Seed: Clone + 'static,
+    H: Clone + 'static,
+    R: Clone + 'static,
 {
     fn filter_seeds<P>(self, pred: P) -> SeedPipeline<Local, N, Seed, H, R>
-    where P: Fn(&Seed) -> bool + 'static,
+    where
+        P: Fn(&Seed) -> bool + 'static,
     {
         let pred = Rc::new(pred);
         self.reshape(
@@ -48,12 +61,12 @@ where N: Clone + 'static, Seed: Clone + 'static,
     }
 
     fn wrap_grow<W>(self, wrapper: W) -> SeedPipeline<Local, N, Seed, H, R>
-    where W: Fn(&Seed, &dyn Fn(&Seed) -> N) -> N + 'static,
+    where
+        W: Fn(&Seed, &dyn Fn(&Seed) -> N) -> N + 'static,
     {
         let wrapper = Rc::new(wrapper);
         self.reshape(
-            move |grow: Rc<dyn Fn(&Seed) -> N>| -> Rc<dyn Fn(&Seed) -> N>
-            {
+            move |grow: Rc<dyn Fn(&Seed) -> N>| -> Rc<dyn Fn(&Seed) -> N> {
                 let w = wrapper.clone();
                 let orig = grow.clone();
                 Rc::new(move |s: &Seed| w(s, &|s: &Seed| orig(s)))
@@ -63,11 +76,11 @@ where N: Clone + 'static, Seed: Clone + 'static,
         )
     }
 
-    fn map_node_bi<N2, Co, Contra>(self, co: Co, contra: Contra)
-        -> SeedPipeline<Local, N2, Seed, H, R>
-    where N2: Clone + 'static,
-          Co:     Fn(&N) -> N2 + 'static,
-          Contra: Fn(&N2) -> N + 'static,
+    fn map_node_bi<N2, Co, Contra>(self, co: Co, contra: Contra) -> SeedPipeline<Local, N2, Seed, H, R>
+    where
+        N2: Clone + 'static,
+        Co: Fn(&N) -> N2 + 'static,
+        Contra: Fn(&N2) -> N + 'static,
     {
         let co = Rc::new(co);
         let contra = Rc::new(contra);
@@ -75,8 +88,7 @@ where N: Clone + 'static, Seed: Clone + 'static,
         let contra_for_seeds = contra.clone();
         let contra_for_fold = contra.clone();
         self.reshape(
-            move |grow: Rc<dyn Fn(&Seed) -> N>| -> Rc<dyn Fn(&Seed) -> N2>
-            {
+            move |grow: Rc<dyn Fn(&Seed) -> N>| -> Rc<dyn Fn(&Seed) -> N2> {
                 let co = co_for_grow;
                 Rc::new(move |s: &Seed| co(&grow(s)))
             },
@@ -91,18 +103,17 @@ where N: Clone + 'static, Seed: Clone + 'static,
         )
     }
 
-    fn map_seed_bi<Seed2, ToNew, FromNew>(self, to_new: ToNew, from_new: FromNew)
-        -> SeedPipeline<Local, N, Seed2, H, R>
-    where Seed2: Clone + 'static,
-          ToNew:   Fn(&Seed) -> Seed2 + 'static,
-          FromNew: Fn(&Seed2) -> Seed + 'static,
+    fn map_seed_bi<Seed2, ToNew, FromNew>(self, to_new: ToNew, from_new: FromNew) -> SeedPipeline<Local, N, Seed2, H, R>
+    where
+        Seed2: Clone + 'static,
+        ToNew: Fn(&Seed) -> Seed2 + 'static,
+        FromNew: Fn(&Seed2) -> Seed + 'static,
     {
         let to_new = Rc::new(to_new);
         let from_new = Rc::new(from_new);
         let from_for_grow = from_new.clone();
         self.reshape(
-            move |grow: Rc<dyn Fn(&Seed) -> N>| -> Rc<dyn Fn(&Seed2) -> N>
-            {
+            move |grow: Rc<dyn Fn(&Seed) -> N>| -> Rc<dyn Fn(&Seed2) -> N> {
                 let from_new = from_for_grow;
                 Rc::new(move |s2: &Seed2| grow(&from_new(s2)))
             },

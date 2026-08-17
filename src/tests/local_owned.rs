@@ -13,7 +13,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::{OwnedPipeline, PipelineExec, PipelineExecOnce, TreeishPipeline};
-use hylic::domain::{local, owned, Local};
+use hylic::domain::{Local, local, owned};
 
 #[test]
 fn local_treeish_pipeline_runs_under_fused_with_non_send_capture() {
@@ -22,7 +22,13 @@ fn local_treeish_pipeline_runs_under_fused_with_non_send_capture() {
     let counter_for_init = counter.clone();
 
     let treeish = local::edgy::treeish(|n: &u64| {
-        if *n == 0 { vec![1u64, 2] } else if *n == 1 { vec![3u64] } else { vec![] }
+        if *n == 0 {
+            vec![1u64, 2]
+        } else if *n == 1 {
+            vec![3u64]
+        } else {
+            vec![]
+        }
     });
     let fold: local::Fold<u64, u64, u64> = local::fold(
         move |n: &u64| {
@@ -44,7 +50,13 @@ fn local_treeish_pipeline_runs_under_fused_with_non_send_capture() {
 #[test]
 fn owned_pipeline_runs_once_via_run_from_node_once() {
     let treeish = owned::edgy::treeish(|n: &u64| {
-        if *n == 0 { vec![1u64, 2] } else if *n == 1 { vec![3u64] } else { vec![] }
+        if *n == 0 {
+            vec![1u64, 2]
+        } else if *n == 1 {
+            vec![3u64]
+        } else {
+            vec![]
+        }
     });
     let fold: owned::Fold<u64, u64, u64> = owned::fold(
         |n: &u64| *n,

@@ -16,8 +16,8 @@
 //!   domain (the GAT crossing for `Domain::Grow<Seed, N>` forces this;
 //!   bodies are ~15 lines each).
 
-use crate::source::TreeishSource;
 use super::wrap::Wrap;
+use crate::source::TreeishSource;
 
 // ANCHOR: stage2_base_trait
 /// A Stage-1 pipeline that can drive a Stage-2 chain. Carries the
@@ -86,8 +86,7 @@ pub trait Stage2Base: TreeishSource + Sized {
     fn provide_run_essentials<CurN: Clone + 'static, T>(
         &self,
         inputs: Self::RunInputs<'_, CurN>,
-        cont: impl FnOnce(Self::PreLift,
-                          &<Self::Wrap as Wrap>::Of<CurN>) -> T,
+        cont: impl FnOnce(Self::PreLift, &<Self::Wrap as Wrap>::Of<CurN>) -> T,
     ) -> T;
 }
 // ANCHOR_END: stage2_base_trait

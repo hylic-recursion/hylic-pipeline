@@ -7,15 +7,15 @@
 //!   used by the unified Stage-2 sugar surface.
 //! - [`Stage2Base`] connects Stage-1 bases to their `Wrap`.
 
+pub mod base;
 pub mod pipeline;
 pub mod primitives;
-pub mod base;
+pub mod run;
 pub mod source;
 pub mod wrap;
-pub mod run;
 
-pub use pipeline::Stage2Pipeline;
 pub use base::{Stage2Base, Stage2BaseSlice};
-pub use wrap::{Wrap, Identity, SeedWrap};
-pub use wrap::shared::WrapShared;
+pub use pipeline::Stage2Pipeline;
 pub use wrap::local::WrapLocal;
+pub use wrap::shared::WrapShared;
+pub use wrap::{Identity, SeedWrap, Wrap};

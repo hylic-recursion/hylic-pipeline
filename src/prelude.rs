@@ -15,12 +15,7 @@
 pub use hylic::prelude::*;
 
 pub use crate::{
-    SeedPipeline, TreeishPipeline, Stage2Pipeline,
-    OwnedPipeline,
-    TreeishSource,
-    PipelineExec, PipelineExecOnce,
-    PipelineSourceOnce,
-    SeedSugarsShared, SeedSugarsLocal,
-    TreeishSugarsShared, TreeishSugarsLocal,
-    Stage2SugarsShared, Stage2SugarsLocal,
+    OwnedPipeline, PipelineExec, PipelineExecOnce, PipelineSourceOnce, SeedPipeline, SeedSugarsLocal, SeedSugarsShared,
+    Stage2Pipeline, Stage2SugarsLocal, Stage2SugarsShared, TreeishPipeline, TreeishSource, TreeishSugarsLocal,
+    TreeishSugarsShared,
 };

@@ -12,10 +12,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::{
-    SeedPipeline, TreeishPipeline, PipelineExec,
-    Stage2SugarsShared,
-};
+use crate::{PipelineExec, SeedPipeline, Stage2SugarsShared, TreeishPipeline};
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
 use hylic::graph::{edgy_visit, treeish};
@@ -24,25 +21,44 @@ use hylic::graph::{edgy_visit, treeish};
 
 #[derive(Clone, Debug)]
 struct Module {
-    name:    String,
+    name: String,
     version: (u32, u32),
-    deps:    Vec<String>,
+    deps: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default)]
 struct ModReport {
-    names_seen:  Vec<String>,
-    total_deps:  u32,
+    names_seen: Vec<String>,
+    total_deps: u32,
     max_version: (u32, u32),
 }
 
 fn module_registry() -> Arc<HashMap<String, Module>> {
     let mut m = HashMap::new();
-    m.insert("app".to_string(), Module { name: "app".into(), version: (1, 2),
-        deps: vec!["db".into(), "auth".into()] });
-    m.insert("db".to_string(), Module { name: "db".into(), version: (3, 0), deps: vec![] });
-    m.insert("auth".to_string(), Module { name: "auth".into(), version: (2, 1),
-        deps: vec!["db".into()] });
+    m.insert(
+        "app".to_string(),
+        Module {
+            name: "app".into(),
+            version: (1, 2),
+            deps: vec!["db".into(), "auth".into()],
+        },
+    );
+    m.insert(
+        "db".to_string(),
+        Module {
+            name: "db".into(),
+            version: (3, 0),
+            deps: vec![],
+        },
+    );
+    m.insert(
+        "auth".to_string(),
+        Module {
+            name: "auth".into(),
+            version: (2, 1),
+            deps: vec!["db".into()],
+        },
+    );
     Arc::new(m)
 }
 
@@ -58,16 +74,26 @@ fn struct_n_string_seeds_vec_result_under_funnel() {
     let registry = module_registry();
     let registry_for_grow = registry.clone();
     let grow = move |seed: &String| -> Module {
-        registry_for_grow.get(seed).cloned().unwrap_or_else(
-            || Module { name: seed.clone(), version: (0, 0), deps: vec![] })
+        registry_for_grow
+            .get(seed)
+            .cloned()
+            .unwrap_or_else(|| Module {
+                name: seed.clone(),
+                version: (0, 0),
+                deps: vec![],
+            })
     };
-    let seeds = edgy_visit(move |m: &Module, cb: &mut dyn FnMut(&String)| {
-        for d in &m.deps { cb(d); }
-    });
+    let seeds = edgy_visit(
+        move |m: &Module, cb: &mut dyn FnMut(&String)| {
+            for d in &m.deps {
+                cb(d);
+            }
+        },
+    );
     let report_fold = fold(
         |m: &Module| ModReport {
-            names_seen:  vec![m.name.clone()],
-            total_deps:  m.deps.len() as u32,
+            names_seen: vec![m.name.clone()],
+            total_deps: m.deps.len() as u32,
             max_version: m.version,
         },
         |h: &mut ModReport, c: &ModReport| {
@@ -78,20 +104,19 @@ fn struct_n_string_seeds_vec_result_under_funnel() {
         |h: &ModReport| h.clone(),
     );
 
-    let r = SeedPipeline::<hylic::domain::Shared, Module, String, ModReport, ModReport>::new(
-        grow, seeds, &report_fold,
-    ).run_from_slice(
-        &dom::exec(funnel::Spec::default(4)),
-        &["app".to_string()],
-        ModReport::default(),
-    );
+    let r = SeedPipeline::<hylic::domain::Shared, Module, String, ModReport, ModReport>::new(grow, seeds, &report_fold)
+        .run_from_slice(
+            &dom::exec(funnel::Spec::default(4)),
+            &["app".to_string()],
+            ModReport::default(),
+        );
 
     // "app" seen + its subtree: "app", "db" (via app->db), "auth", "db" (via auth->db)
     assert!(r.names_seen.contains(&"app".to_string()));
     assert!(r.names_seen.contains(&"db".to_string()));
     assert!(r.names_seen.contains(&"auth".to_string()));
     assert_eq!(r.max_version, (3, 0));
-    assert!(r.total_deps >= 3);  // app(2) + auth(1) ≥ 3
+    assert!(r.total_deps >= 3); // app(2) + auth(1) ≥ 3
 }
 
 // ── HashMap as H, Vec<String> as R ───────────────────────
@@ -102,13 +127,25 @@ fn hashmap_heap_and_result_under_funnel_with_shape_lifts() {
     // tree, plus a zipmap extracting the entry count as a sidecar.
 
     #[derive(Clone, Debug)]
-    struct N { val: u32, kids: Vec<N> }
+    struct N {
+        val: u32,
+        kids: Vec<N>,
+    }
 
     let tree = N {
         val: 0,
         kids: vec![
-            N { val: 1, kids: vec![ N { val: 3, kids: vec![] } ] },
-            N { val: 2, kids: vec![] },
+            N {
+                val: 1,
+                kids: vec![N {
+                    val: 3,
+                    kids: vec![],
+                }],
+            },
+            N {
+                val: 2,
+                kids: vec![],
+            },
         ],
     };
 
@@ -120,27 +157,38 @@ fn hashmap_heap_and_result_under_funnel_with_shape_lifts() {
             h
         },
         |h: &mut HashMap<u32, u32>, c: &HashMap<u32, u32>| {
-            for (&k, &v) in c { *h.entry(k).or_insert(0) += v; }
+            for (&k, &v) in c {
+                *h.entry(k).or_insert(0) += v;
+            }
         },
         |h: &HashMap<u32, u32>| h.clone(),
     );
 
     let (r, n_entries): (HashMap<u32, u32>, usize) =
         TreeishPipeline::<hylic::domain::Shared, N, HashMap<u32, u32>, HashMap<u32, u32>>::new(graph, &f)
-        .lift()
-        .wrap_init(|n: &N, orig: &dyn Fn(&N) -> HashMap<u32, u32>| {
-            let mut h = orig(n);
-            *h.entry(999).or_insert(0) += 1;
-            h
-        })
-        .zipmap(|h: &HashMap<u32, u32>| h.len())
-        .run_from_node(&dom::exec(funnel::Spec::default(4)), &tree);
+            .lift()
+            .wrap_init(
+                |n: &N, orig: &dyn Fn(&N) -> HashMap<u32, u32>| {
+                    let mut h = orig(n);
+                    *h.entry(999).or_insert(0) += 1;
+                    h
+                },
+            )
+            .zipmap(|h: &HashMap<u32, u32>| h.len())
+            .run_from_node(
+                &dom::exec(funnel::Spec::default(4)),
+                &tree,
+            );
 
     // Every node contributes a 999 entry (4 nodes).
     assert_eq!(r.get(&999).copied(), Some(4));
     // Values 0, 1, 2, 3 each counted once.
     for k in [0, 1, 2, 3] {
-        assert_eq!(r.get(&k).copied(), Some(1), "count for val={k}: {r:?}");
+        assert_eq!(
+            r.get(&k).copied(),
+            Some(1),
+            "count for val={k}: {r:?}"
+        );
     }
     // zipmap sidecar: total number of keys (0, 1, 2, 3, 999 = 5).
     assert_eq!(n_entries, 5);
@@ -149,7 +197,7 @@ fn hashmap_heap_and_result_under_funnel_with_shape_lifts() {
 // ── Non-Clone N via Arc wrapper ──────────────────────────
 
 struct NonClonePayload {
-    id:   u64,
+    id: u64,
     blob: Vec<u8>,
 }
 
@@ -168,18 +216,29 @@ fn arc_wrapped_non_clone_n_under_funnel() {
     ]);
     let tree_for_graph = tree_data.clone();
     let graph = treeish(move |n: &Arc<NonClonePayload>| {
-        if n.id == 0 { tree_for_graph.iter().cloned().collect() } else { vec![] }
+        if n.id == 0 {
+            tree_for_graph.iter().cloned().collect()
+        } else {
+            vec![]
+        }
     });
 
     // H = (u64, usize): (id_sum, total_blob_bytes).
     let f = fold(
         |n: &Arc<NonClonePayload>| (n.id, n.blob.len()),
-        |h: &mut (u64, usize), c: &(u64, usize)| { h.0 += c.0; h.1 += c.1; },
+        |h: &mut (u64, usize), c: &(u64, usize)| {
+            h.0 += c.0;
+            h.1 += c.1;
+        },
         |h: &(u64, usize)| *h,
     );
 
-    let (id_sum, byte_sum) = TreeishPipeline::<hylic::domain::Shared, Arc<NonClonePayload>, (u64, usize), (u64, usize)>::new(graph, &f)
-        .run_from_node(&dom::exec(funnel::Spec::default(4)), &root);
+    let (id_sum, byte_sum) =
+        TreeishPipeline::<hylic::domain::Shared, Arc<NonClonePayload>, (u64, usize), (u64, usize)>::new(graph, &f)
+            .run_from_node(
+                &dom::exec(funnel::Spec::default(4)),
+                &root,
+            );
 
     // 0 + 10 + 20 = 30 ids; 3 + 4 + 6 = 13 bytes.
     assert_eq!(id_sum, 30);
@@ -192,14 +251,19 @@ fn arc_wrapped_non_clone_n_under_funnel() {
 fn vec_of_structs_result_under_funnel() {
     // R = Vec<(String, u32)> — accumulates labelled depth pairs.
     #[derive(Clone, Debug)]
-    struct Labelled { label: String, depth: u32 }
+    struct Labelled {
+        label: String,
+        depth: u32,
+    }
 
     let kids_for = |l: &Labelled| -> Vec<Labelled> {
         if l.depth < 3 {
-            (0..2).map(|i| Labelled {
-                label: format!("{}/{i}", l.label),
-                depth: l.depth + 1,
-            }).collect()
+            (0..2)
+                .map(|i| Labelled {
+                    label: format!("{}/{i}", l.label),
+                    depth: l.depth + 1,
+                })
+                .collect()
         } else {
             vec![]
         }
@@ -207,16 +271,17 @@ fn vec_of_structs_result_under_funnel() {
     let graph = treeish(kids_for);
     let f = fold(
         |n: &Labelled| vec![(n.label.clone(), n.depth)],
-        |h: &mut Vec<(String, u32)>, c: &Vec<(String, u32)>| {
-            h.extend(c.iter().cloned())
-        },
+        |h: &mut Vec<(String, u32)>, c: &Vec<(String, u32)>| h.extend(c.iter().cloned()),
         |h: &Vec<(String, u32)>| h.clone(),
     );
 
     let r = TreeishPipeline::<hylic::domain::Shared, Labelled, Vec<(String, u32)>, Vec<(String, u32)>>::new(graph, &f)
         .run_from_node(
             &dom::exec(funnel::Spec::default(4)),
-            &Labelled { label: "root".into(), depth: 0 },
+            &Labelled {
+                label: "root".into(),
+                depth: 0,
+            },
         );
 
     // Tree has 1 + 2 + 4 + 8 = 15 nodes (depth 0..3).

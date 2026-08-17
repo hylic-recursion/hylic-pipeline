@@ -2,27 +2,38 @@
 //! transparent R. Under Option B the chain is typed at
 //! `SeedNode<N>`; Entry is a first-class value of the node type.
 
+use crate::SeedPipeline;
 #[allow(unused_imports)]
 use crate::Stage2SugarsShared;
-use std::sync::{Arc, Mutex};
-use crate::SeedPipeline;
+use hylic::domain::Shared;
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
-use hylic::domain::Shared;
 use hylic::graph::edgy_visit;
 use hylic::ops::SeedNode;
 use hylic::prelude::trace_fold_compact;
+use std::sync::{Arc, Mutex};
 
 fn basic_pipeline() -> SeedPipeline<Shared, u64, u64, u64, u64> {
-    let ch: Arc<Vec<Vec<u64>>> = Arc::new(vec![vec![1, 2], vec![3], vec![], vec![]]);
+    let ch: Arc<Vec<Vec<u64>>> = Arc::new(vec![
+        vec![1, 2],
+        vec![3],
+        vec![],
+        vec![],
+    ]);
     let base_fold = fold(
         |n: &u64| *n,
         |h: &mut u64, c: &u64| *h += c,
         |h: &u64| *h,
     );
-    let seeds = edgy_visit(move |n: &u64, cb: &mut dyn FnMut(&u64)| {
-        if let Some(kids) = ch.get(*n as usize) { for k in kids { cb(k); } }
-    });
+    let seeds = edgy_visit(
+        move |n: &u64, cb: &mut dyn FnMut(&u64)| {
+            if let Some(kids) = ch.get(*n as usize) {
+                for k in kids {
+                    cb(k);
+                }
+            }
+        },
+    );
     SeedPipeline::new(|s: &u64| *s, seeds, &base_fold)
 }
 
@@ -41,14 +52,24 @@ fn explainer_describe_streams_per_node_and_preserves_r() {
                 captured_for_emit.lock().unwrap().push(s.to_string());
             },
         )
-        .run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
+        .run_from_slice(
+            &dom::exec(funnel::Spec::default(4)),
+            &[0u64],
+            0u64,
+        );
 
     // R unchanged: sum = 0 + 1 + 2 + 3 = 6.
     assert_eq!(r, 6);
 
     let lines = captured.lock().unwrap();
-    assert!(!lines.is_empty(), "trace emitted at least one line");
+    assert!(
+        !lines.is_empty(),
+        "trace emitted at least one line"
+    );
     for line in lines.iter() {
-        assert!(line.contains("=>"), "trace line formatted: {line}");
+        assert!(
+            line.contains("=>"),
+            "trace line formatted: {line}"
+        );
     }
 }

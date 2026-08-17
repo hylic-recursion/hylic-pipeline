@@ -4,33 +4,39 @@
 
 #![allow(missing_docs)] // module-level: public items are per-domain/per-policy mirrors of documented primitives
 
-use std::sync::Arc;
+use crate::treeish::TreeishPipeline;
 use hylic::domain::Shared;
 use hylic::domain::shared::fold::Fold;
 use hylic::graph::Treeish;
-use crate::treeish::TreeishPipeline;
+use std::sync::Arc;
 
 // ANCHOR: treeish_sugars_shared_trait
 pub trait TreeishSugarsShared<N, H, R>: Sized
-where N: Clone + 'static, H: Clone + 'static, R: Clone + 'static,
+where
+    N: Clone + 'static,
+    H: Clone + 'static,
+    R: Clone + 'static,
 {
-    fn map_node_bi<N2, Co, Contra>(self, co: Co, contra: Contra)
-        -> TreeishPipeline<Shared, N2, H, R>
-    where N2: Clone + 'static,
-          Co:     Fn(&N) -> N2 + Send + Sync + 'static,
-          Contra: Fn(&N2) -> N + Send + Sync + 'static;
+    fn map_node_bi<N2, Co, Contra>(self, co: Co, contra: Contra) -> TreeishPipeline<Shared, N2, H, R>
+    where
+        N2: Clone + 'static,
+        Co: Fn(&N) -> N2 + Send + Sync + 'static,
+        Contra: Fn(&N2) -> N + Send + Sync + 'static;
 }
 
 // ANCHOR_END: treeish_sugars_shared_trait
 
 impl<N, H, R> TreeishSugarsShared<N, H, R> for TreeishPipeline<Shared, N, H, R>
-where N: Clone + 'static, H: Clone + 'static, R: Clone + 'static,
+where
+    N: Clone + 'static,
+    H: Clone + 'static,
+    R: Clone + 'static,
 {
-    fn map_node_bi<N2, Co, Contra>(self, co: Co, contra: Contra)
-        -> TreeishPipeline<Shared, N2, H, R>
-    where N2: Clone + 'static,
-          Co:     Fn(&N) -> N2 + Send + Sync + 'static,
-          Contra: Fn(&N2) -> N + Send + Sync + 'static,
+    fn map_node_bi<N2, Co, Contra>(self, co: Co, contra: Contra) -> TreeishPipeline<Shared, N2, H, R>
+    where
+        N2: Clone + 'static,
+        Co: Fn(&N) -> N2 + Send + Sync + 'static,
+        Contra: Fn(&N2) -> N + Send + Sync + 'static,
     {
         let co = Arc::new(co);
         let contra = Arc::new(contra);
@@ -39,12 +45,11 @@ where N: Clone + 'static, H: Clone + 'static, R: Clone + 'static,
         let contra_for_fold = contra.clone();
         self.reshape(
             move |treeish: Treeish<N>| -> Treeish<N2> {
-                treeish.contramap(move |n2: &N2| contra_for_treeish(n2))
-                       .map(move |n: &N| co_for_treeish(n))
+                treeish
+                    .contramap(move |n2: &N2| contra_for_treeish(n2))
+                    .map(move |n: &N| co_for_treeish(n))
             },
-            move |fold: Fold<N, H, R>| -> Fold<N2, H, R> {
-                fold.contramap_n(move |n2: &N2| contra_for_fold(n2))
-            },
+            move |fold: Fold<N, H, R>| -> Fold<N2, H, R> { fold.contramap_n(move |n2: &N2| contra_for_fold(n2)) },
         )
     }
 }

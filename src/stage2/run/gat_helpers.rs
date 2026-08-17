@@ -22,7 +22,7 @@
 use std::rc::Rc;
 use std::sync::Arc;
 
-use hylic::domain::{Domain, Shared, Local};
+use hylic::domain::{Domain, Local, Shared};
 
 #[inline]
 pub(crate) fn shared_grow_as_arc<Seed: 'static, NOut: 'static>(

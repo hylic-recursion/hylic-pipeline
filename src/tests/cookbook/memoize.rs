@@ -4,13 +4,13 @@
 //! memoize_by keyed on node id, the second visit replays cached
 //! children.
 
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-use crate::{TreeishPipeline, PipelineExec, Stage2SugarsShared};
+use crate::{PipelineExec, Stage2SugarsShared, TreeishPipeline};
+use hylic::domain::Shared;
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
 use hylic::graph::treeish;
-use hylic::domain::Shared;
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 struct NodeId(u32);
@@ -32,9 +32,7 @@ fn diamond_registry() -> Arc<HashMap<NodeId, Vec<NodeId>>> {
     Arc::new(m)
 }
 
-fn pipeline_with_visit_counter(
-    counter: Arc<Mutex<u32>>,
-) -> TreeishPipeline<Shared, NodeId, u32, u32> {
+fn pipeline_with_visit_counter(counter: Arc<Mutex<u32>>) -> TreeishPipeline<Shared, NodeId, u32, u32> {
     let reg = diamond_registry();
     let t = treeish(move |n: &NodeId| {
         *counter.lock().unwrap() += 1;
@@ -55,14 +53,20 @@ fn memoize_by_dedupes_shared_subtree_visits() {
     let visits_naive: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
     let _r_naive: u32 = pipeline_with_visit_counter(visits_naive.clone())
         .lift()
-        .run_from_node(&dom::exec(funnel::Spec::default(4)), &root);
+        .run_from_node(
+            &dom::exec(funnel::Spec::default(4)),
+            &root,
+        );
     let naive_visits = *visits_naive.lock().unwrap();
 
     let visits_memo: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
     let _r_memo: u32 = pipeline_with_visit_counter(visits_memo.clone())
         .lift()
         .memoize_by(|n: &NodeId| n.0)
-        .run_from_node(&dom::exec(funnel::Spec::default(4)), &root);
+        .run_from_node(
+            &dom::exec(funnel::Spec::default(4)),
+            &root,
+        );
     let memo_visits = *visits_memo.lock().unwrap();
 
     // Memoized path queries the base treeish fewer times for the

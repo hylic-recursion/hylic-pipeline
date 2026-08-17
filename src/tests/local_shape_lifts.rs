@@ -16,7 +16,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::{PipelineExec, TreeishPipeline};
-use hylic::domain::{local, Local};
+use hylic::domain::{Local, local};
 
 #[test]
 fn local_pipeline_with_wrap_init_lift_non_send_capture() {
@@ -25,7 +25,13 @@ fn local_pipeline_with_wrap_init_lift_non_send_capture() {
     let init_log_for_wrap = init_log.clone();
 
     let treeish = local::edgy::treeish(|n: &u64| {
-        if *n == 0 { vec![1u64, 2] } else if *n == 1 { vec![3u64] } else { vec![] }
+        if *n == 0 {
+            vec![1u64, 2]
+        } else if *n == 1 {
+            vec![3u64]
+        } else {
+            vec![]
+        }
     });
     let fold = local::fold(
         |n: &u64| *n,

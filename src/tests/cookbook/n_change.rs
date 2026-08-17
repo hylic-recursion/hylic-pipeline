@@ -4,18 +4,24 @@
 //! `map_n_bi_lift` (as `map_node_bi` method) for bijective
 //! N-wrap.
 
-use std::sync::Arc;
-use crate::{TreeishPipeline, PipelineExec, Stage2SugarsShared, TreeishSugarsShared};
+use crate::{PipelineExec, Stage2SugarsShared, TreeishPipeline, TreeishSugarsShared};
+use hylic::domain::Shared;
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
-use hylic::graph::{treeish, treeish_visit, Treeish};
-use hylic::domain::Shared;
+use hylic::graph::{Treeish, treeish, treeish_visit};
+use std::sync::Arc;
 
 #[derive(Clone, Debug)]
-struct Node { val: u64, children: Vec<Node> }
+struct Node {
+    val: u64,
+    children: Vec<Node>,
+}
 
 #[derive(Clone, Debug)]
-struct WithDepth { node: Node, depth: u32 }
+struct WithDepth {
+    node: Node,
+    depth: u32,
+}
 
 #[test]
 fn contramap_node_arc_wraps_non_clone_payload() {
@@ -23,8 +29,14 @@ fn contramap_node_arc_wraps_non_clone_payload() {
     let tree = Node {
         val: 10,
         children: vec![
-            Node { val: 1, children: vec![] },
-            Node { val: 2, children: vec![] },
+            Node {
+                val: 1,
+                children: vec![],
+            },
+            Node {
+                val: 2,
+                children: vec![],
+            },
         ],
     };
     let base_treeish: Treeish<Node> = treeish(|n: &Node| n.children.clone());
@@ -39,7 +51,10 @@ fn contramap_node_arc_wraps_non_clone_payload() {
             |n: &Node| Arc::new(n.clone()),
             |a: &Arc<Node>| (**a).clone(),
         )
-        .run_from_node(&dom::exec(funnel::Spec::default(4)), &Arc::new(tree));
+        .run_from_node(
+            &dom::exec(funnel::Spec::default(4)),
+            &Arc::new(tree),
+        );
     assert_eq!(r, 13);
 }
 
@@ -51,11 +66,20 @@ fn inline_lift_depth_annotates() {
             Node {
                 val: 10,
                 children: vec![
-                    Node { val: 1, children: vec![] },
-                    Node { val: 2, children: vec![] },
+                    Node {
+                        val: 1,
+                        children: vec![],
+                    },
+                    Node {
+                        val: 2,
+                        children: vec![],
+                    },
                 ],
             },
-            Node { val: 20, children: vec![] },
+            Node {
+                val: 20,
+                children: vec![],
+            },
         ],
     };
 
@@ -69,12 +93,17 @@ fn inline_lift_depth_annotates() {
     let lift = Shared::n_lift::<Node, u64, u64, WithDepth, _, _>(
         |base: &Treeish<Node>| -> Treeish<WithDepth> {
             let base = base.clone();
-            treeish_visit(move |wd: &WithDepth, cb: &mut dyn FnMut(&WithDepth)| {
-                let d = wd.depth;
-                base.visit(&wd.node, &mut |child: &Node| {
-                    cb(&WithDepth { node: child.clone(), depth: d + 1 })
-                });
-            })
+            treeish_visit(
+                move |wd: &WithDepth, cb: &mut dyn FnMut(&WithDepth)| {
+                    let d = wd.depth;
+                    base.visit(&wd.node, &mut |child: &Node| {
+                        cb(&WithDepth {
+                            node: child.clone(),
+                            depth: d + 1,
+                        })
+                    });
+                },
+            )
         },
         |wd: &WithDepth| wd.node.clone(),
     );
@@ -106,7 +135,10 @@ fn inline_lift_depth_annotates() {
         .wrap_init(|wd: &WithDepth, _orig: &dyn Fn(&WithDepth) -> u64| wd.node.val * (wd.depth as u64))
         .run_from_node(
             &dom::exec(funnel::Spec::default(4)),
-            &WithDepth { node: tree.clone(), depth: 0 },
+            &WithDepth {
+                node: tree.clone(),
+                depth: 0,
+            },
         );
 
     // root 100*0 + level-1 (10*1 + 20*1) + level-2 (1*2 + 2*2) = 0 + 30 + 6 = 36

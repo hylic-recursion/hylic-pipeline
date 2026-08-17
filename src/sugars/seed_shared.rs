@@ -4,44 +4,57 @@
 
 #![allow(missing_docs)] // module-level: public items are per-domain/per-policy mirrors of documented primitives
 
-use std::sync::Arc;
+use crate::seed::SeedPipeline;
 use hylic::domain::Shared;
 use hylic::domain::shared::fold::Fold;
 use hylic::graph::Edgy;
-use crate::seed::SeedPipeline;
+use std::sync::Arc;
 
 // ANCHOR: seed_sugars_shared_trait
 pub trait SeedSugarsShared<N, Seed, H, R>: Sized
-where N: Clone + 'static, Seed: Clone + 'static,
-      H: Clone + 'static, R: Clone + 'static,
+where
+    N: Clone + 'static,
+    Seed: Clone + 'static,
+    H: Clone + 'static,
+    R: Clone + 'static,
 {
     fn filter_seeds<P>(self, pred: P) -> SeedPipeline<Shared, N, Seed, H, R>
-    where P: Fn(&Seed) -> bool + Send + Sync + 'static;
+    where
+        P: Fn(&Seed) -> bool + Send + Sync + 'static;
 
     fn wrap_grow<W>(self, wrapper: W) -> SeedPipeline<Shared, N, Seed, H, R>
-    where W: Fn(&Seed, &dyn Fn(&Seed) -> N) -> N + Send + Sync + 'static;
+    where
+        W: Fn(&Seed, &dyn Fn(&Seed) -> N) -> N + Send + Sync + 'static;
 
-    fn map_node_bi<N2, Co, Contra>(self, co: Co, contra: Contra)
-        -> SeedPipeline<Shared, N2, Seed, H, R>
-    where N2: Clone + 'static,
-          Co:     Fn(&N) -> N2 + Send + Sync + 'static,
-          Contra: Fn(&N2) -> N + Send + Sync + 'static;
+    fn map_node_bi<N2, Co, Contra>(self, co: Co, contra: Contra) -> SeedPipeline<Shared, N2, Seed, H, R>
+    where
+        N2: Clone + 'static,
+        Co: Fn(&N) -> N2 + Send + Sync + 'static,
+        Contra: Fn(&N2) -> N + Send + Sync + 'static;
 
-    fn map_seed_bi<Seed2, ToNew, FromNew>(self, to_new: ToNew, from_new: FromNew)
-        -> SeedPipeline<Shared, N, Seed2, H, R>
-    where Seed2: Clone + 'static,
-          ToNew:   Fn(&Seed) -> Seed2 + Send + Sync + 'static,
-          FromNew: Fn(&Seed2) -> Seed + Send + Sync + 'static;
+    fn map_seed_bi<Seed2, ToNew, FromNew>(
+        self,
+        to_new: ToNew,
+        from_new: FromNew,
+    ) -> SeedPipeline<Shared, N, Seed2, H, R>
+    where
+        Seed2: Clone + 'static,
+        ToNew: Fn(&Seed) -> Seed2 + Send + Sync + 'static,
+        FromNew: Fn(&Seed2) -> Seed + Send + Sync + 'static;
 }
 
 // ANCHOR_END: seed_sugars_shared_trait
 
 impl<N, Seed, H, R> SeedSugarsShared<N, Seed, H, R> for SeedPipeline<Shared, N, Seed, H, R>
-where N: Clone + 'static, Seed: Clone + 'static,
-      H: Clone + 'static, R: Clone + 'static,
+where
+    N: Clone + 'static,
+    Seed: Clone + 'static,
+    H: Clone + 'static,
+    R: Clone + 'static,
 {
     fn filter_seeds<P>(self, pred: P) -> SeedPipeline<Shared, N, Seed, H, R>
-    where P: Fn(&Seed) -> bool + Send + Sync + 'static,
+    where
+        P: Fn(&Seed) -> bool + Send + Sync + 'static,
     {
         let pred = Arc::new(pred);
         self.reshape(
@@ -52,13 +65,12 @@ where N: Clone + 'static, Seed: Clone + 'static,
     }
 
     fn wrap_grow<W>(self, wrapper: W) -> SeedPipeline<Shared, N, Seed, H, R>
-    where W: Fn(&Seed, &dyn Fn(&Seed) -> N) -> N + Send + Sync + 'static,
+    where
+        W: Fn(&Seed, &dyn Fn(&Seed) -> N) -> N + Send + Sync + 'static,
     {
         let wrapper = Arc::new(wrapper);
         self.reshape(
-            move |grow: Arc<dyn Fn(&Seed) -> N + Send + Sync>|
-                -> Arc<dyn Fn(&Seed) -> N + Send + Sync>
-            {
+            move |grow: Arc<dyn Fn(&Seed) -> N + Send + Sync>| -> Arc<dyn Fn(&Seed) -> N + Send + Sync> {
                 let w = wrapper.clone();
                 let orig = grow.clone();
                 Arc::new(move |s: &Seed| w(s, &|s: &Seed| orig(s)))
@@ -68,11 +80,11 @@ where N: Clone + 'static, Seed: Clone + 'static,
         )
     }
 
-    fn map_node_bi<N2, Co, Contra>(self, co: Co, contra: Contra)
-        -> SeedPipeline<Shared, N2, Seed, H, R>
-    where N2: Clone + 'static,
-          Co:     Fn(&N) -> N2 + Send + Sync + 'static,
-          Contra: Fn(&N2) -> N + Send + Sync + 'static,
+    fn map_node_bi<N2, Co, Contra>(self, co: Co, contra: Contra) -> SeedPipeline<Shared, N2, Seed, H, R>
+    where
+        N2: Clone + 'static,
+        Co: Fn(&N) -> N2 + Send + Sync + 'static,
+        Contra: Fn(&N2) -> N + Send + Sync + 'static,
     {
         let co = Arc::new(co);
         let contra = Arc::new(contra);
@@ -80,9 +92,7 @@ where N: Clone + 'static, Seed: Clone + 'static,
         let contra_for_seeds = contra.clone();
         let contra_for_fold = contra.clone();
         self.reshape(
-            move |grow: Arc<dyn Fn(&Seed) -> N + Send + Sync>|
-                -> Arc<dyn Fn(&Seed) -> N2 + Send + Sync>
-            {
+            move |grow: Arc<dyn Fn(&Seed) -> N + Send + Sync>| -> Arc<dyn Fn(&Seed) -> N2 + Send + Sync> {
                 let co = co_for_grow;
                 Arc::new(move |s: &Seed| co(&grow(s)))
             },
@@ -97,19 +107,21 @@ where N: Clone + 'static, Seed: Clone + 'static,
         )
     }
 
-    fn map_seed_bi<Seed2, ToNew, FromNew>(self, to_new: ToNew, from_new: FromNew)
-        -> SeedPipeline<Shared, N, Seed2, H, R>
-    where Seed2: Clone + 'static,
-          ToNew:   Fn(&Seed) -> Seed2 + Send + Sync + 'static,
-          FromNew: Fn(&Seed2) -> Seed + Send + Sync + 'static,
+    fn map_seed_bi<Seed2, ToNew, FromNew>(
+        self,
+        to_new: ToNew,
+        from_new: FromNew,
+    ) -> SeedPipeline<Shared, N, Seed2, H, R>
+    where
+        Seed2: Clone + 'static,
+        ToNew: Fn(&Seed) -> Seed2 + Send + Sync + 'static,
+        FromNew: Fn(&Seed2) -> Seed + Send + Sync + 'static,
     {
         let to_new = Arc::new(to_new);
         let from_new = Arc::new(from_new);
         let from_for_grow = from_new.clone();
         self.reshape(
-            move |grow: Arc<dyn Fn(&Seed) -> N + Send + Sync>|
-                -> Arc<dyn Fn(&Seed2) -> N + Send + Sync>
-            {
+            move |grow: Arc<dyn Fn(&Seed) -> N + Send + Sync>| -> Arc<dyn Fn(&Seed2) -> N + Send + Sync> {
                 let from_new = from_for_grow;
                 Arc::new(move |s2: &Seed2| grow(&from_new(s2)))
             },

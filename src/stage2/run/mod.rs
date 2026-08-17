@@ -54,55 +54,63 @@ use hylic::exec::Executor;
 use hylic::ops::{Lift, TreeOps};
 
 use crate::source::TreeishSource;
-use crate::stage2::{Stage2Pipeline, Stage2Base, Stage2BaseSlice, Wrap};
+use crate::stage2::{Stage2Base, Stage2BaseSlice, Stage2Pipeline, Wrap};
 
 // ── Internal foundation: tuple-form run, generic over Base ────
 
 impl<Base, L> Stage2Pipeline<Base, L>
-where Base: Stage2Base,
+where
+    Base: Stage2Base,
 {
     /// Drive the chain to completion. Internal — the user-facing
     /// methods (`run`, `run_from_slice` on seed-rooted; `run_from_node`
     /// on treeish-rooted via the existing `PipelineExec` blanket)
     /// adapt the call shape.
-    fn run_with_inputs<E, CurN>(
-        &self, exec: &E,
-        inputs: <Base as Stage2Base>::RunInputs<'_, CurN>,
-    ) -> L::MapR
-    where CurN: Clone + 'static,
-          <Base as TreeishSource>::Domain:
-              Domain<<Base as TreeishSource>::N>
+    fn run_with_inputs<E, CurN>(&self, exec: &E, inputs: <Base as Stage2Base>::RunInputs<'_, CurN>) -> L::MapR
+    where
+        CurN: Clone + 'static,
+        <Base as TreeishSource>::Domain: Domain<<Base as TreeishSource>::N>
             + Domain<<<Base as Stage2Base>::Wrap as Wrap>::Of<<Base as TreeishSource>::N>>
             + Domain<<<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>>,
-          <Base as Stage2Base>::PreLift: Lift<
-              <Base as TreeishSource>::Domain,
-              <Base as TreeishSource>::N,
-              <Base as TreeishSource>::H,
-              <Base as TreeishSource>::R,
-              N2 = <<Base as Stage2Base>::Wrap as Wrap>::Of<<Base as TreeishSource>::N>,
-              MapH = <Base as TreeishSource>::H,
-              MapR = <Base as TreeishSource>::R>,
-          L: Lift<<Base as TreeishSource>::Domain,
-                  <<Base as Stage2Base>::Wrap as Wrap>::Of<<Base as TreeishSource>::N>,
-                  <Base as TreeishSource>::H,
-                  <Base as TreeishSource>::R,
-                  N2 = <<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>>,
-          L::MapH: Clone + 'static,
-          L::MapR: Clone + 'static,
-          E: Executor<<<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>,
-                      L::MapR,
-                      <Base as TreeishSource>::Domain,
-                      <<Base as TreeishSource>::Domain as Domain<<<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>>>::Graph<<<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>>>,
-          <<Base as TreeishSource>::Domain as Domain<<<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>>>::Graph<<<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>>: TreeOps<<<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>>,
+        <Base as Stage2Base>::PreLift: Lift<
+                <Base as TreeishSource>::Domain,
+                <Base as TreeishSource>::N,
+                <Base as TreeishSource>::H,
+                <Base as TreeishSource>::R,
+                N2 = <<Base as Stage2Base>::Wrap as Wrap>::Of<<Base as TreeishSource>::N>,
+                MapH = <Base as TreeishSource>::H,
+                MapR = <Base as TreeishSource>::R,
+            >,
+        L: Lift<
+                <Base as TreeishSource>::Domain,
+                <<Base as Stage2Base>::Wrap as Wrap>::Of<<Base as TreeishSource>::N>,
+                <Base as TreeishSource>::H,
+                <Base as TreeishSource>::R,
+                N2 = <<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>,
+            >,
+        L::MapH: Clone + 'static,
+        L::MapR: Clone + 'static,
+        E: Executor<
+                <<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>,
+                L::MapR,
+                <Base as TreeishSource>::Domain,
+                <<Base as TreeishSource>::Domain as Domain<<<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>>>::Graph<
+                    <<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>,
+                >,
+            >,
+        <<Base as TreeishSource>::Domain as Domain<<<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>>>::Graph<
+            <<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>,
+        >: TreeOps<<<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>>,
     {
         self.base.with_treeish(|t0, f0| {
-            self.base.provide_run_essentials::<CurN, _>(inputs, |pre, root| {
-                pre.apply(t0, f0, |t1, f1| {
-                    self.pre_lift.apply(t1, f1, |t2, f2| {
-                        exec.run(&f2, &t2, root)
+            self.base
+                .provide_run_essentials::<CurN, _>(inputs, |pre, root| {
+                    pre.apply(t0, f0, |t1, f1| {
+                        self.pre_lift.apply(t1, f1, |t2, f2| {
+                            exec.run(&f2, &t2, root)
+                        })
                     })
                 })
-            })
         })
     }
 }
@@ -114,46 +122,58 @@ where Base: Stage2Base,
 // Adding a redundant `run(exec, &root)` here would be UX clutter.
 
 impl<Base, L> Stage2Pipeline<Base, L>
-where Base: Stage2BaseSlice,
+where
+    Base: Stage2BaseSlice,
 {
     /// Run the seed-rooted chain against an explicit `Edgy<(), Seed>`
     /// of root seeds plus an entry heap. Mirrors
     /// `SeedPipeline::run` — the `.lift()` step is hidden inside the
     /// chain, so the call shape is the same.
     pub fn run<E, CurN>(
-        &self, exec: &E,
+        &self,
+        exec: &E,
         root_seeds: <<Base as TreeishSource>::Domain as Domain<()>>::Graph<<Base as Stage2BaseSlice>::Seed>,
         entry_heap: <Base as TreeishSource>::H,
     ) -> L::MapR
-    where CurN: Clone + 'static,
-          <Base as TreeishSource>::Domain:
-              Domain<()>
+    where
+        CurN: Clone + 'static,
+        <Base as TreeishSource>::Domain: Domain<()>
             + Domain<<Base as TreeishSource>::N>
             + Domain<<<Base as Stage2Base>::Wrap as Wrap>::Of<<Base as TreeishSource>::N>>
             + Domain<<<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>>,
-          <Base as Stage2Base>::RunInputs<'static, CurN>:
-              From<(<<Base as TreeishSource>::Domain as Domain<()>>::Graph<<Base as Stage2BaseSlice>::Seed>,
-                    <Base as TreeishSource>::H)>,
-          <Base as Stage2Base>::PreLift: Lift<
-              <Base as TreeishSource>::Domain,
-              <Base as TreeishSource>::N,
-              <Base as TreeishSource>::H,
-              <Base as TreeishSource>::R,
-              N2 = <<Base as Stage2Base>::Wrap as Wrap>::Of<<Base as TreeishSource>::N>,
-              MapH = <Base as TreeishSource>::H,
-              MapR = <Base as TreeishSource>::R>,
-          L: Lift<<Base as TreeishSource>::Domain,
-                  <<Base as Stage2Base>::Wrap as Wrap>::Of<<Base as TreeishSource>::N>,
-                  <Base as TreeishSource>::H,
-                  <Base as TreeishSource>::R,
-                  N2 = <<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>>,
-          L::MapH: Clone + 'static,
-          L::MapR: Clone + 'static,
-          E: Executor<<<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>,
-                      L::MapR,
-                      <Base as TreeishSource>::Domain,
-                      <<Base as TreeishSource>::Domain as Domain<<<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>>>::Graph<<<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>>>,
-          <<Base as TreeishSource>::Domain as Domain<<<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>>>::Graph<<<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>>: TreeOps<<<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>>,
+        <Base as Stage2Base>::RunInputs<'static, CurN>: From<(
+            <<Base as TreeishSource>::Domain as Domain<()>>::Graph<<Base as Stage2BaseSlice>::Seed>,
+            <Base as TreeishSource>::H,
+        )>,
+        <Base as Stage2Base>::PreLift: Lift<
+                <Base as TreeishSource>::Domain,
+                <Base as TreeishSource>::N,
+                <Base as TreeishSource>::H,
+                <Base as TreeishSource>::R,
+                N2 = <<Base as Stage2Base>::Wrap as Wrap>::Of<<Base as TreeishSource>::N>,
+                MapH = <Base as TreeishSource>::H,
+                MapR = <Base as TreeishSource>::R,
+            >,
+        L: Lift<
+                <Base as TreeishSource>::Domain,
+                <<Base as Stage2Base>::Wrap as Wrap>::Of<<Base as TreeishSource>::N>,
+                <Base as TreeishSource>::H,
+                <Base as TreeishSource>::R,
+                N2 = <<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>,
+            >,
+        L::MapH: Clone + 'static,
+        L::MapR: Clone + 'static,
+        E: Executor<
+                <<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>,
+                L::MapR,
+                <Base as TreeishSource>::Domain,
+                <<Base as TreeishSource>::Domain as Domain<<<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>>>::Graph<
+                    <<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>,
+                >,
+            >,
+        <<Base as TreeishSource>::Domain as Domain<<<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>>>::Graph<
+            <<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>,
+        >: TreeOps<<<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>>,
     {
         self.run_with_inputs::<E, CurN>(exec, (root_seeds, entry_heap).into())
     }
@@ -161,36 +181,49 @@ where Base: Stage2BaseSlice,
     /// Slice-of-seeds shorthand. Packs `seeds` into an `Edgy<(), Seed>`
     /// callback iterator and dispatches through `run`.
     pub fn run_from_slice<E, CurN>(
-        &self, exec: &E,
+        &self,
+        exec: &E,
         seeds: &[<Base as Stage2BaseSlice>::Seed],
         entry_heap: <Base as TreeishSource>::H,
     ) -> L::MapR
-    where CurN: Clone + 'static,
-          <Base as TreeishSource>::Domain:
-              Domain<<Base as TreeishSource>::N>
+    where
+        CurN: Clone + 'static,
+        <Base as TreeishSource>::Domain: Domain<<Base as TreeishSource>::N>
             + Domain<<<Base as Stage2Base>::Wrap as Wrap>::Of<<Base as TreeishSource>::N>>
             + Domain<<<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>>,
-          <Base as Stage2Base>::PreLift: Lift<
-              <Base as TreeishSource>::Domain,
-              <Base as TreeishSource>::N,
-              <Base as TreeishSource>::H,
-              <Base as TreeishSource>::R,
-              N2 = <<Base as Stage2Base>::Wrap as Wrap>::Of<<Base as TreeishSource>::N>,
-              MapH = <Base as TreeishSource>::H,
-              MapR = <Base as TreeishSource>::R>,
-          L: Lift<<Base as TreeishSource>::Domain,
-                  <<Base as Stage2Base>::Wrap as Wrap>::Of<<Base as TreeishSource>::N>,
-                  <Base as TreeishSource>::H,
-                  <Base as TreeishSource>::R,
-                  N2 = <<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>>,
-          L::MapH: Clone + 'static,
-          L::MapR: Clone + 'static,
-          E: Executor<<<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>,
-                      L::MapR,
-                      <Base as TreeishSource>::Domain,
-                      <<Base as TreeishSource>::Domain as Domain<<<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>>>::Graph<<<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>>>,
-          <<Base as TreeishSource>::Domain as Domain<<<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>>>::Graph<<<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>>: TreeOps<<<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>>,
+        <Base as Stage2Base>::PreLift: Lift<
+                <Base as TreeishSource>::Domain,
+                <Base as TreeishSource>::N,
+                <Base as TreeishSource>::H,
+                <Base as TreeishSource>::R,
+                N2 = <<Base as Stage2Base>::Wrap as Wrap>::Of<<Base as TreeishSource>::N>,
+                MapH = <Base as TreeishSource>::H,
+                MapR = <Base as TreeishSource>::R,
+            >,
+        L: Lift<
+                <Base as TreeishSource>::Domain,
+                <<Base as Stage2Base>::Wrap as Wrap>::Of<<Base as TreeishSource>::N>,
+                <Base as TreeishSource>::H,
+                <Base as TreeishSource>::R,
+                N2 = <<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>,
+            >,
+        L::MapH: Clone + 'static,
+        L::MapR: Clone + 'static,
+        E: Executor<
+                <<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>,
+                L::MapR,
+                <Base as TreeishSource>::Domain,
+                <<Base as TreeishSource>::Domain as Domain<<<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>>>::Graph<
+                    <<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>,
+                >,
+            >,
+        <<Base as TreeishSource>::Domain as Domain<<<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>>>::Graph<
+            <<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>,
+        >: TreeOps<<<Base as Stage2Base>::Wrap as Wrap>::Of<CurN>>,
     {
-        self.run_with_inputs::<E, CurN>(exec, Base::slice_run_inputs::<CurN>(seeds, entry_heap))
+        self.run_with_inputs::<E, CurN>(
+            exec,
+            Base::slice_run_inputs::<CurN>(seeds, entry_heap),
+        )
     }
 }

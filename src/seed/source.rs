@@ -5,32 +5,29 @@
 //!
 //! Plus the `.lift()` Stage-1 → Stage-2 transition.
 
+use super::super::source::TreeishSource;
+use super::super::stage2::Stage2Pipeline;
+use super::SeedPipeline;
 use hylic::domain::Domain;
 use hylic::ops::{IdentityLift, SeedNode, ShapeCapable};
-use super::SeedPipeline;
-use super::super::stage2::Stage2Pipeline;
-use super::super::source::TreeishSource;
 
 impl<D, N, Seed, H, R> TreeishSource for SeedPipeline<D, N, Seed, H, R>
-where D: ShapeCapable<N>,
-      N: Clone + 'static, Seed: Clone + 'static,
-      H: Clone + 'static, R: Clone + 'static,
-      <D as Domain<N>>::Grow<Seed, N>: Clone,
-      <D as Domain<N>>::Graph<Seed>:   Clone,
-      <D as Domain<N>>::Fold<H, R>:    Clone,
+where
+    D: ShapeCapable<N>,
+    N: Clone + 'static,
+    Seed: Clone + 'static,
+    H: Clone + 'static,
+    R: Clone + 'static,
+    <D as Domain<N>>::Grow<Seed, N>: Clone,
+    <D as Domain<N>>::Graph<Seed>: Clone,
+    <D as Domain<N>>::Fold<H, R>: Clone,
 {
     type Domain = D;
     type N = N;
     type H = H;
     type R = R;
 
-    fn with_treeish<T>(
-        &self,
-        cont: impl FnOnce(
-            <D as Domain<N>>::Graph<N>,
-            <D as Domain<N>>::Fold<H, R>,
-        ) -> T,
-    ) -> T {
+    fn with_treeish<T>(&self, cont: impl FnOnce(<D as Domain<N>>::Graph<N>, <D as Domain<N>>::Fold<H, R>) -> T) -> T {
         let treeish = D::fuse_grow_with_seeds::<Seed>(
             self.grow.clone(),
             self.seeds_from_node.clone(),
@@ -42,8 +39,12 @@ where D: ShapeCapable<N>,
 // ── Transition to Stage 2 ──────────────────────────────
 
 impl<D, N, Seed, H, R> SeedPipeline<D, N, Seed, H, R>
-where D: Domain<N> + Domain<SeedNode<N>>,
-      N: 'static, Seed: 'static, H: 'static, R: 'static,
+where
+    D: Domain<N> + Domain<SeedNode<N>>,
+    N: 'static,
+    Seed: 'static,
+    H: 'static,
+    R: 'static,
 {
     /// Transition to Stage 2. Produces a `Stage2Pipeline` whose
     /// chain is typed at `SeedNode<N>`. SeedLift is NOT yet

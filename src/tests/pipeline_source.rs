@@ -2,20 +2,33 @@
 //! no-SeedLift path). The seeded / SeedLift path is tested via
 //! `Stage2Pipeline::.run(...)` in other test files.
 
-use std::sync::Arc;
-use crate::{SeedPipeline, TreeishSource, PipelineExec};
+use crate::{PipelineExec, SeedPipeline, TreeishSource};
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
 use hylic::graph::edgy_visit;
+use std::sync::Arc;
 
 fn basic_pipeline() -> SeedPipeline<hylic::domain::Shared, u64, u64, u64, u64> {
-    let ch: Arc<Vec<Vec<u64>>> = Arc::new(vec![vec![1, 2], vec![3], vec![], vec![]]);
-    let base_fold = fold(|n: &u64| *n, |h: &mut u64, c: &u64| *h += c, |h: &u64| *h);
-    let seeds = edgy_visit(move |n: &u64, cb: &mut dyn FnMut(&u64)| {
-        if let Some(kids) = ch.get(*n as usize) {
-            for k in kids { cb(k); }
-        }
-    });
+    let ch: Arc<Vec<Vec<u64>>> = Arc::new(vec![
+        vec![1, 2],
+        vec![3],
+        vec![],
+        vec![],
+    ]);
+    let base_fold = fold(
+        |n: &u64| *n,
+        |h: &mut u64, c: &u64| *h += c,
+        |h: &u64| *h,
+    );
+    let seeds = edgy_visit(
+        move |n: &u64, cb: &mut dyn FnMut(&u64)| {
+            if let Some(kids) = ch.get(*n as usize) {
+                for k in kids {
+                    cb(k);
+                }
+            }
+        },
+    );
     SeedPipeline::new(|s: &u64| *s, seeds, &base_fold)
 }
 
@@ -24,10 +37,7 @@ fn with_treeish_yields_pair() {
     // SeedPipeline implements TreeishSource by fusing grow +
     // seeds_from_node into a single Graph<N>. Seedless; grow is
     // not exposed.
-    let r: u64 = basic_pipeline()
-        .with_treeish(|treeish, fold| {
-            dom::FUSED.run(&fold, &treeish, &0u64)
-        });
+    let r: u64 = basic_pipeline().with_treeish(|treeish, fold| dom::FUSED.run(&fold, &treeish, &0u64));
     assert_eq!(r, 6);
 }
 

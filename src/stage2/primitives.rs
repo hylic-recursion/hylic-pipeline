@@ -18,10 +18,10 @@
 //! `SeedLift` (which is the natural seed-rooted chain head) is not a
 //! sensible position. It carries the `L0` validity bound directly.
 
+use super::pipeline::Stage2Pipeline;
+use crate::treeish::TreeishPipeline;
 use hylic::domain::Domain;
 use hylic::ops::{ComposedLift, Lift};
-use crate::treeish::TreeishPipeline;
-use super::pipeline::Stage2Pipeline;
 
 // ── Sole composition primitive: unconstrained ────────────
 
@@ -30,12 +30,9 @@ impl<Base, L> Stage2Pipeline<Base, L> {
     /// Post-compose `outer` onto the chain. Pure struct construction;
     /// no bounds. The composition's *meaningfulness* is enforced where
     /// the chain is consumed (`.run_*`, `TreeishSource`).
-    pub fn then_lift<L2>(
-        self,
-        outer: L2,
-    ) -> Stage2Pipeline<Base, ComposedLift<L, L2>> {
+    pub fn then_lift<L2>(self, outer: L2) -> Stage2Pipeline<Base, ComposedLift<L, L2>> {
         Stage2Pipeline {
-            base:     self.base,
+            base: self.base,
             pre_lift: ComposedLift::compose(self.pre_lift, outer),
         }
     }
@@ -45,12 +42,15 @@ impl<Base, L> Stage2Pipeline<Base, L> {
 // ── Pre-composition: treeish-rooted only ─────────────────
 
 impl<D, N, H, R, L> Stage2Pipeline<TreeishPipeline<D, N, H, R>, L>
-where D: Domain<N>,
-      N: Clone + 'static, H: Clone + 'static, R: Clone + 'static,
-      <D as Domain<N>>::Graph<N>:   Clone,
-      <D as Domain<N>>::Fold<H, R>: Clone,
-      L: Lift<D, N, H, R>,
-      D: Domain<L::N2>,
+where
+    D: Domain<N>,
+    N: Clone + 'static,
+    H: Clone + 'static,
+    R: Clone + 'static,
+    <D as Domain<N>>::Graph<N>: Clone,
+    <D as Domain<N>>::Fold<H, R>: Clone,
+    L: Lift<D, N, H, R>,
+    D: Domain<L::N2>,
 {
     // ANCHOR: before_lift_primitive
     /// Pre-compose a type-preserving lift `first` before the chain.
@@ -61,12 +61,15 @@ where D: Domain<N>,
     /// Available only for treeish-rooted pipelines: seed-rooted
     /// chains have `SeedLift` composed at `.run` time as the natural
     /// chain head, leaving no meaningful "before" position.
-    pub fn before_lift<L0>(self, first: L0)
-        -> Stage2Pipeline<TreeishPipeline<D, N, H, R>, ComposedLift<L0, L>>
-    where L0: Lift<D, N, H, R>,
-          D: Domain<L0::N2>,
+    pub fn before_lift<L0>(self, first: L0) -> Stage2Pipeline<TreeishPipeline<D, N, H, R>, ComposedLift<L0, L>>
+    where
+        L0: Lift<D, N, H, R>,
+        D: Domain<L0::N2>,
     {
-        Stage2Pipeline { base: self.base, pre_lift: ComposedLift::compose(first, self.pre_lift) }
+        Stage2Pipeline {
+            base: self.base,
+            pre_lift: ComposedLift::compose(first, self.pre_lift),
+        }
     }
     // ANCHOR_END: before_lift_primitive
 }

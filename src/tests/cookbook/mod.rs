@@ -1,11 +1,11 @@
 //! Cookbook — realistic typed scenarios per sugar family.
 //! Tests double as reference code users copy-paste.
 
-mod wrap_fold_patterns;
+mod bare_usage;
+mod explain;
 mod graph_transform;
 mod memoize;
 mod memoize_fused;
-mod n_change;
-mod explain;
 mod multi_axis;
-mod bare_usage;
+mod n_change;
+mod wrap_fold_patterns;

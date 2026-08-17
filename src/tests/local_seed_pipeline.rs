@@ -2,34 +2,41 @@
 //! subset of `intuitive_reuse.rs` / `shape_shifting.rs` / `power_user.rs`
 //! against Local storage, proving parity with Shared.
 
+use crate::SeedPipeline;
 #[allow(unused_imports)]
 use crate::Stage2SugarsLocal;
-use std::rc::Rc;
-use crate::SeedPipeline;
-use hylic::domain::{local, Local};
-use hylic::ops::{SeedNode};
+use hylic::domain::{Local, local};
+use hylic::ops::SeedNode;
 use hylic::prelude::{ExplainerResult, SeedExplainerResult};
+use std::rc::Rc;
 
 fn basic() -> SeedPipeline<Local, u64, u64, u64, u64> {
     let ch: Rc<Vec<Vec<u64>>> = Rc::new(vec![
-        vec![1, 2], vec![3], vec![], vec![],
+        vec![1, 2],
+        vec![3],
+        vec![],
+        vec![],
     ]);
     let base_fold = local::fold(
         |n: &u64| *n,
         |h: &mut u64, c: &u64| *h += c,
         |h: &u64| *h,
     );
-    let seeds = local::edgy::edgy_visit(move |n: &u64, cb: &mut dyn FnMut(&u64)| {
-        if let Some(kids) = ch.get(*n as usize) { for k in kids { cb(k); } }
-    });
+    let seeds = local::edgy::edgy_visit(
+        move |n: &u64, cb: &mut dyn FnMut(&u64)| {
+            if let Some(kids) = ch.get(*n as usize) {
+                for k in kids {
+                    cb(k);
+                }
+            }
+        },
+    );
     SeedPipeline::<Local, u64, u64, u64, u64>::new_local(|s: &u64| *s, seeds, &base_fold)
 }
 
 #[test]
 fn local_run_from_slice_baseline() {
-    let r = basic()
-        .lift()
-        .run_from_slice(&local::FUSED, &[0u64], 0u64);
+    let r = basic().lift().run_from_slice(&local::FUSED, &[0u64], 0u64);
     // 0+1+2+3 = 6.
     assert_eq!(r, 6);
 }
@@ -75,10 +82,11 @@ fn local_map_n_bi_stage2() {
 
 #[test]
 fn local_explain_projects_via_seed_explainer_result() {
-    let raw: ExplainerResult<SeedNode<u64>, u64, u64> = basic()
-        .lift()
-        .explain()
-        .run_from_slice(&local::FUSED, &[0u64], 0u64);
+    let raw: ExplainerResult<SeedNode<u64>, u64, u64> =
+        basic()
+            .lift()
+            .explain()
+            .run_from_slice(&local::FUSED, &[0u64], 0u64);
 
     // Raw chain-tip carries SeedNode<N>.
     assert_eq!(raw.orig_result, 6);

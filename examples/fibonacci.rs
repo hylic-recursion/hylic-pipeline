@@ -18,7 +18,7 @@ use hylic_pipeline::prelude::*;
 fn main() {
     let children = treeish(|n: &u64| match *n {
         0 | 1 => vec![],
-        k     => vec![k - 1, k - 2],
+        k => vec![k - 1, k - 2],
     });
 
     let add = fold(
@@ -27,8 +27,7 @@ fn main() {
         |acc: &u64| *acc,
     );
 
-    let pipeline: TreeishPipeline<Shared, u64, u64, u64> =
-        TreeishPipeline::new(children, &add);
+    let pipeline: TreeishPipeline<Shared, u64, u64, u64> = TreeishPipeline::new(children, &add);
 
     // Sequential, naïve.
     let r_seq: u64 = pipeline.clone().run_from_node(&FUSED, &15);
@@ -37,15 +36,15 @@ fn main() {
 
     // Sequential with memoised children enumeration. Same result,
     // fewer calls into the graph closure.
-    let r_memo: u64 = pipeline.clone()
+    let r_memo: u64 = pipeline
+        .clone()
         .memoize_by(|n: &u64| *n)
         .run_from_node(&FUSED, &20);
     println!("fib(20) memoised (Fused)   = {r_memo}");
     assert_eq!(r_memo, 6765);
 
     // Parallel, naïve. The same pipeline runs unchanged.
-    let r_par: u64 = pipeline
-        .run_from_node(&exec(funnel::Spec::default(4)), &15);
+    let r_par: u64 = pipeline.run_from_node(&exec(funnel::Spec::default(4)), &15);
     println!("fib(15) parallel (Funnel)  = {r_par}");
     assert_eq!(r_par, 610);
 }

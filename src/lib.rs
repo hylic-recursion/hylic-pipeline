@@ -25,30 +25,24 @@
 
 #![warn(missing_docs)]
 
-pub mod source;
-pub mod seed;
-pub mod treeish;
 pub mod owned;
-pub mod sugars;
+pub mod seed;
+pub mod source;
 pub mod stage2;
+pub mod sugars;
+pub mod treeish;
 
 #[cfg(test)]
 mod tests;
 
 pub mod prelude;
 
-pub use source::{
-    TreeishSource,
-    PipelineSourceOnce,
-    PipelineExec, PipelineExecOnce,
-};
-pub use seed::SeedPipeline;
-pub use treeish::TreeishPipeline;
-pub use owned::OwnedPipeline;
-pub use sugars::{
-    SeedSugarsShared, SeedSugarsLocal,
-    TreeishSugarsShared, TreeishSugarsLocal,
-    Stage2SugarsShared, Stage2SugarsLocal,
-};
 pub use hylic::ops::SeedNode;
-pub use stage2::{Wrap, Identity, SeedWrap, WrapShared, WrapLocal, Stage2Base, Stage2Pipeline};
+pub use owned::OwnedPipeline;
+pub use seed::SeedPipeline;
+pub use source::{PipelineExec, PipelineExecOnce, PipelineSourceOnce, TreeishSource};
+pub use stage2::{Identity, SeedWrap, Stage2Base, Stage2Pipeline, Wrap, WrapLocal, WrapShared};
+pub use sugars::{
+    SeedSugarsLocal, SeedSugarsShared, Stage2SugarsLocal, Stage2SugarsShared, TreeishSugarsLocal, TreeishSugarsShared,
+};
+pub use treeish::TreeishPipeline;

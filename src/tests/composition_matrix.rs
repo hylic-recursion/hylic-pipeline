@@ -8,23 +8,38 @@
 
 #![allow(clippy::type_complexity)]
 
+use crate::SeedPipeline;
 #[allow(unused_imports)]
 use crate::Stage2SugarsShared;
-use std::sync::Arc;
-use crate::SeedPipeline;
-use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::domain::Shared;
+use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
 use hylic::graph::edgy_visit;
 use hylic::ops::SeedNode;
 use hylic::prelude::ExplainerResult;
+use std::sync::Arc;
 
 fn basic() -> SeedPipeline<Shared, u64, u64, u64, u64> {
-    let ch: Arc<Vec<Vec<u64>>> = Arc::new(vec![vec![1, 2], vec![3], vec![], vec![]]);
-    let base_fold = fold(|n: &u64| *n, |h: &mut u64, c: &u64| *h += c, |h: &u64| *h);
-    let seeds = edgy_visit(move |n: &u64, cb: &mut dyn FnMut(&u64)| {
-        if let Some(kids) = ch.get(*n as usize) { for k in kids { cb(k); } }
-    });
+    let ch: Arc<Vec<Vec<u64>>> = Arc::new(vec![
+        vec![1, 2],
+        vec![3],
+        vec![],
+        vec![],
+    ]);
+    let base_fold = fold(
+        |n: &u64| *n,
+        |h: &mut u64, c: &u64| *h += c,
+        |h: &u64| *h,
+    );
+    let seeds = edgy_visit(
+        move |n: &u64, cb: &mut dyn FnMut(&u64)| {
+            if let Some(kids) = ch.get(*n as usize) {
+                for k in kids {
+                    cb(k);
+                }
+            }
+        },
+    );
     SeedPipeline::new(|s: &u64| *s, seeds, &base_fold)
 }
 
@@ -36,7 +51,11 @@ fn wrap_init_then_explain() {
         .lift()
         .wrap_init(|n: &u64, orig: &dyn Fn(&u64) -> u64| orig(n) + 1)
         .explain()
-        .run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
+        .run_from_slice(
+            &dom::exec(funnel::Spec::default(4)),
+            &[0u64],
+            0u64,
+        );
     // base sum = 6; +1 per real Node init (4 nodes: 0, 1, 2, 3) =>
     // 0 → 1+[6,3]=10; 1 → 2+[4]=6; 2 → 3; 3 → 4; entry → 0+[10]=10.
     assert_eq!(r.orig_result, 10);
@@ -54,7 +73,11 @@ fn explain_then_wrap_finalize() {
         .lift()
         .explain()
         .wrap_finalize(|h, orig| orig(h))
-        .run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
+        .run_from_slice(
+            &dom::exec(funnel::Spec::default(4)),
+            &[0u64],
+            0u64,
+        );
     assert_eq!(r.orig_result, 6);
 }
 
@@ -82,7 +105,11 @@ fn explain_then_map_r_bi_str() {
                 }
             },
         )
-        .run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
+        .run_from_slice(
+            &dom::exec(funnel::Spec::default(4)),
+            &[0u64],
+            0u64,
+        );
     assert_eq!(r, "orig=6");
 }
 
@@ -95,22 +122,39 @@ fn explain_then_wrap_init_dispatches_node_vs_entry() {
     // taking &u64; EntryRoot bypasses the user closure (uses orig).
     let counter = Arc::new(std::sync::atomic::AtomicUsize::new(0));
     let counter_for_closure = counter.clone();
-    let r: ExplainerResult<SeedNode<u64>, u64, u64> = basic()
-        .lift()
-        .explain()
-        .wrap_init(move |_n: &u64,
-                    orig: &dyn Fn(&u64) -> hylic::prelude::ExplainerHeap<
-                                            SeedNode<u64>, u64, ExplainerResult<SeedNode<u64>, u64, u64>>|
-              -> hylic::prelude::ExplainerHeap<
-                    SeedNode<u64>, u64, ExplainerResult<SeedNode<u64>, u64, u64>>
-            {
-                counter_for_closure.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                orig(_n)
-            })
-        .run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
+    let r: ExplainerResult<SeedNode<u64>, u64, u64> =
+        basic()
+            .lift()
+            .explain()
+            .wrap_init(
+                move |_n: &u64,
+                      orig: &dyn Fn(
+                    &u64,
+                ) -> hylic::prelude::ExplainerHeap<
+                    SeedNode<u64>,
+                    u64,
+                    ExplainerResult<SeedNode<u64>, u64, u64>,
+                >|
+                      -> hylic::prelude::ExplainerHeap<
+                    SeedNode<u64>,
+                    u64,
+                    ExplainerResult<SeedNode<u64>, u64, u64>,
+                > {
+                    counter_for_closure.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    orig(_n)
+                },
+            )
+            .run_from_slice(
+                &dom::exec(funnel::Spec::default(4)),
+                &[0u64],
+                0u64,
+            );
     // The user-closure runs once per real Node (4 of them). EntryRoot
     // is bypassed by the seed sugar dispatch.
-    assert_eq!(counter.load(std::sync::atomic::Ordering::Relaxed), 4);
+    assert_eq!(
+        counter.load(std::sync::atomic::Ordering::Relaxed),
+        4
+    );
     assert_eq!(r.orig_result, 6);
 }
 
@@ -125,11 +169,11 @@ fn explain_then_explain_nests_traces() {
         SeedNode<u64>,
         hylic::prelude::ExplainerHeap<SeedNode<u64>, u64, ExplainerResult<SeedNode<u64>, u64, u64>>,
         ExplainerResult<SeedNode<u64>, u64, u64>,
-    > = basic()
-        .lift()
-        .explain()
-        .explain()
-        .run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
+    > = basic().lift().explain().explain().run_from_slice(
+        &dom::exec(funnel::Spec::default(4)),
+        &[0u64],
+        0u64,
+    );
     // Outer trace's orig_result is the inner trace's orig_result-shaped value.
     assert_eq!(r.orig_result.orig_result, 6);
 }
@@ -143,7 +187,10 @@ fn explain_then_zipmap_then_map_r_bi() {
         .explain()
         .zipmap(|er: &ExplainerResult<SeedNode<u64>, u64, u64>| er.orig_result + 100)
         .map_r_bi(
-            |pair: &(ExplainerResult<SeedNode<u64>, u64, u64>, u64)| pair.1,
+            |pair: &(
+                ExplainerResult<SeedNode<u64>, u64, u64>,
+                u64,
+            )| pair.1,
             |n: &u64| {
                 (
                     ExplainerResult {
@@ -159,7 +206,11 @@ fn explain_then_zipmap_then_map_r_bi() {
                 )
             },
         )
-        .run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
+        .run_from_slice(
+            &dom::exec(funnel::Spec::default(4)),
+            &[0u64],
+            0u64,
+        );
     // zipmap is applied per-node uniformly. At each finalize:
     //   leaf            extra = orig + 100
     //   parent          orig accumulates children's RNew (their extras),

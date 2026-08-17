@@ -11,16 +11,16 @@
 //!
 //! All sugar traits come into scope via `hylic_pipeline::prelude::*`.
 
-pub mod seed_shared;
 pub mod seed_local;
-pub mod treeish_shared;
-pub mod treeish_local;
-pub mod stage2_shared;
+pub mod seed_shared;
 pub mod stage2_local;
+pub mod stage2_shared;
+pub mod treeish_local;
+pub mod treeish_shared;
 
-pub use seed_shared::SeedSugarsShared;
 pub use seed_local::SeedSugarsLocal;
-pub use treeish_shared::TreeishSugarsShared;
-pub use treeish_local::TreeishSugarsLocal;
-pub use stage2_shared::Stage2SugarsShared;
+pub use seed_shared::SeedSugarsShared;
 pub use stage2_local::Stage2SugarsLocal;
+pub use stage2_shared::Stage2SugarsShared;
+pub use treeish_local::TreeishSugarsLocal;
+pub use treeish_shared::TreeishSugarsShared;

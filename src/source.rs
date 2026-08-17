@@ -16,8 +16,8 @@
 //! [`crate::seed::stage2_base_shared`] /
 //! [`crate::seed::stage2_base_local`].
 
-use hylic::exec::Executor;
 use hylic::domain::Domain;
+use hylic::exec::Executor;
 use hylic::ops::TreeOps;
 
 // ── TreeishSource ─────────────────────────────────────
@@ -55,11 +55,11 @@ pub trait PipelineSourceOnce {
     /// Domain in which the pipeline's slots are stored.
     type Domain: Domain<Self::N>;
     /// Node type flowing through the fold and graph.
-    type N:    'static;
+    type N: 'static;
     /// Per-node heap type used by the fold.
-    type H:    'static;
+    type H: 'static;
     /// Result type returned at each fold node.
-    type R:    'static;
+    type R: 'static;
 
     /// Consume the pipeline and yield its `(treeish, fold)` pair to
     /// the given continuation.
@@ -81,20 +81,12 @@ pub trait PipelineSourceOnce {
 pub trait PipelineExec: TreeishSource {
     /// Execute the pipeline from the given `root` node under the
     /// supplied executor and return the root's fold result.
-    fn run_from_node<E>(
-        &self,
-        exec: &E,
-        root: &Self::N,
-    ) -> Self::R
-    where E: Executor<
-            Self::N, Self::R, Self::Domain,
-            <Self::Domain as Domain<Self::N>>::Graph<Self::N>,
-        >,
-          <Self::Domain as Domain<Self::N>>::Graph<Self::N>: TreeOps<Self::N>,
+    fn run_from_node<E>(&self, exec: &E, root: &Self::N) -> Self::R
+    where
+        E: Executor<Self::N, Self::R, Self::Domain, <Self::Domain as Domain<Self::N>>::Graph<Self::N>>,
+        <Self::Domain as Domain<Self::N>>::Graph<Self::N>: TreeOps<Self::N>,
     {
-        self.with_treeish(|treeish, fold| {
-            exec.run(&fold, &treeish, root)
-        })
+        self.with_treeish(|treeish, fold| exec.run(&fold, &treeish, root))
     }
 }
 
@@ -109,21 +101,13 @@ impl<P: TreeishSource> PipelineExec for P {}
 pub trait PipelineExecOnce: PipelineSourceOnce + Sized {
     /// Consume the pipeline, apply it at `root` under the given
     /// executor, and return the root's fold result.
-    fn run_from_node_once<E>(
-        self,
-        exec: &E,
-        root: &Self::N,
-    ) -> Self::R
-    where E: Executor<
-            Self::N, Self::R, Self::Domain,
-            <Self::Domain as Domain<Self::N>>::Graph<Self::N>,
-        >,
-          <Self::Domain as Domain<Self::N>>::Graph<Self::N>: TreeOps<Self::N>,
-          Self::N: Clone,
+    fn run_from_node_once<E>(self, exec: &E, root: &Self::N) -> Self::R
+    where
+        E: Executor<Self::N, Self::R, Self::Domain, <Self::Domain as Domain<Self::N>>::Graph<Self::N>>,
+        <Self::Domain as Domain<Self::N>>::Graph<Self::N>: TreeOps<Self::N>,
+        Self::N: Clone,
     {
-        self.with_constructed_once(|treeish, fold| {
-            exec.run(&fold, &treeish, root)
-        })
+        self.with_constructed_once(|treeish, fold| exec.run(&fold, &treeish, root))
     }
 }
 

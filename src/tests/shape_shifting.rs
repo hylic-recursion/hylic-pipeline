@@ -4,27 +4,36 @@
 
 #[allow(unused_imports)]
 use crate::Stage2SugarsShared;
-use std::sync::Arc;
 use crate::{SeedPipeline, SeedSugarsShared};
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
 use hylic::graph::edgy_visit;
 use hylic::ops::SeedNode;
 use hylic::prelude::ExplainerResult;
+use std::sync::Arc;
 
 /// Flat adjacency: 0 → {1, 2}; 1 → {3}; 2, 3 leaves.
 fn basic_pipeline() -> SeedPipeline<hylic::domain::Shared, u64, u64, u64, u64> {
     let ch: Arc<Vec<Vec<u64>>> = Arc::new(vec![
-        vec![1, 2], vec![3], vec![], vec![],
+        vec![1, 2],
+        vec![3],
+        vec![],
+        vec![],
     ]);
     let base_fold = fold(
         |n: &u64| *n,
         |h: &mut u64, c: &u64| *h += c,
         |h: &u64| *h,
     );
-    let seeds = edgy_visit(move |n: &u64, cb: &mut dyn FnMut(&u64)| {
-        if let Some(kids) = ch.get(*n as usize) { for k in kids { cb(k); } }
-    });
+    let seeds = edgy_visit(
+        move |n: &u64, cb: &mut dyn FnMut(&u64)| {
+            if let Some(kids) = ch.get(*n as usize) {
+                for k in kids {
+                    cb(k);
+                }
+            }
+        },
+    );
     SeedPipeline::new(|s: &u64| *s, seeds, &base_fold)
 }
 
@@ -47,13 +56,19 @@ fn t1_stage1_heavy_reshape() {
             |s: &String| s.strip_prefix("seed-").unwrap().parse::<u64>().unwrap(),
         )
         .filter_seeds(|s: &String| s != "seed-2")
-        .wrap_grow(|s: &String, orig: &dyn Fn(&String) -> BoxedU64| {
-            // Wrap grow: add 1000 to the value on every grown node.
-            let b = orig(s);
-            BoxedU64(b.0 + 1000)
-        })
+        .wrap_grow(
+            |s: &String, orig: &dyn Fn(&String) -> BoxedU64| {
+                // Wrap grow: add 1000 to the value on every grown node.
+                let b = orig(s);
+                BoxedU64(b.0 + 1000)
+            },
+        )
         .lift()
-        .run_from_slice(&dom::exec(funnel::Spec::default(4)), &["seed-0".to_string()], 0u64);
+        .run_from_slice(
+            &dom::exec(funnel::Spec::default(4)),
+            &["seed-0".to_string()],
+            0u64,
+        );
 
     // Tree after filter+wrap_grow:
     // entry seed "seed-0" → grow'd through +1000 → BoxedU64(1000).
@@ -88,7 +103,11 @@ fn t2_full_coalgebra_and_algebra_shape_shift() {
             },
         )
         .explain()
-        .run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
+        .run_from_slice(
+            &dom::exec(funnel::Spec::default(4)),
+            &[0u64],
+            0u64,
+        );
 
     // Trace:
     // filter_seeds keeps 1 (drops 2); 0 → {1}; 1 → {3}.

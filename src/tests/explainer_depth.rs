@@ -2,26 +2,37 @@
 //! Same baseline R regardless of where Explainer sits; trace
 //! content differs. Also exercises nested Explainer composition.
 
+use crate::SeedPipeline;
 #[allow(unused_imports)]
 use crate::Stage2SugarsShared;
-use std::sync::Arc;
-use crate::{SeedPipeline};
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
 use hylic::graph::edgy_visit;
-use hylic::prelude::{ExplainerHeap, ExplainerResult};
 use hylic::ops::SeedNode;
+use hylic::prelude::{ExplainerHeap, ExplainerResult};
+use std::sync::Arc;
 
 fn basic() -> SeedPipeline<hylic::domain::Shared, u64, u64, u64, u64> {
-    let ch: Arc<Vec<Vec<u64>>> = Arc::new(vec![vec![1, 2], vec![3], vec![], vec![]]);
+    let ch: Arc<Vec<Vec<u64>>> = Arc::new(vec![
+        vec![1, 2],
+        vec![3],
+        vec![],
+        vec![],
+    ]);
     let base_fold = fold(
         |n: &u64| *n,
         |h: &mut u64, c: &u64| *h += c,
         |h: &u64| *h,
     );
-    let seeds = edgy_visit(move |n: &u64, cb: &mut dyn FnMut(&u64)| {
-        if let Some(kids) = ch.get(*n as usize) { for k in kids { cb(k); } }
-    });
+    let seeds = edgy_visit(
+        move |n: &u64, cb: &mut dyn FnMut(&u64)| {
+            if let Some(kids) = ch.get(*n as usize) {
+                for k in kids {
+                    cb(k);
+                }
+            }
+        },
+    );
     SeedPipeline::new(|s: &u64| *s, seeds, &base_fold)
 }
 
@@ -31,7 +42,11 @@ fn explainer_early_vs_late_same_orig_result() {
         .lift()
         .explain()
         .zipmap(|r: &ExplainerResult<SeedNode<u64>, u64, u64>| r.orig_result * 2)
-        .run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
+        .run_from_slice(
+            &dom::exec(funnel::Spec::default(4)),
+            &[0u64],
+            0u64,
+        );
     // Base R = 0+1+2+3 = 6. Zipmap pairs (ExplainerResult{6, …}, 12).
     assert_eq!(r_early.0.orig_result, 6);
     assert_eq!(r_early.1, 12);
@@ -64,32 +79,42 @@ fn nested_explainers_compose() {
     type InnerMapR = ExplainerResult<SeedNode<u64>, u64, u64>;
     type OuterMapR = ExplainerResult<SeedNode<u64>, InnerMapH, InnerMapR>;
 
-    let r: OuterMapR = basic()
-        .lift()
-        .explain()
-        .explain()
-        .run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u64], 0u64);
+    let r: OuterMapR = basic().lift().explain().explain().run_from_slice(
+        &dom::exec(funnel::Spec::default(4)),
+        &[0u64],
+        0u64,
+    );
 
     // Unwrap the two trace layers and assert the innermost result.
     assert_eq!(r.orig_result.orig_result, 6);
-    assert!(!r.heap.transitions.is_empty(), "outer trace populated");
-    assert!(!r.orig_result.heap.transitions.is_empty(), "inner trace populated");
+    assert!(
+        !r.heap.transitions.is_empty(),
+        "outer trace populated"
+    );
+    assert!(
+        !r.orig_result.heap.transitions.is_empty(),
+        "inner trace populated"
+    );
 }
 
 #[test]
 fn explainer_trace_structure_walks_tree() {
-    let r: ExplainerResult<SeedNode<u64>, u64, u64> = basic()
-        .lift()
-        .explain()
-        .run_from_slice(
-            &dom::exec(funnel::Spec::default(4)),
-            &[0u64],
-            0u64,
-        );
+    let r: ExplainerResult<SeedNode<u64>, u64, u64> = basic().lift().explain().run_from_slice(
+        &dom::exec(funnel::Spec::default(4)),
+        &[0u64],
+        0u64,
+    );
 
-    assert_eq!(r.heap.transitions.len(), 1, "Entry has one child");
+    assert_eq!(
+        r.heap.transitions.len(),
+        1,
+        "Entry has one child"
+    );
 
     let zero_step = &r.heap.transitions[0];
-    assert_eq!(zero_step.incoming_result.heap.transitions.len(), 2,
-               "node 0 has two children (1, 2)");
+    assert_eq!(
+        zero_step.incoming_result.heap.transitions.len(),
+        2,
+        "node 0 has two children (1, 2)"
+    );
 }

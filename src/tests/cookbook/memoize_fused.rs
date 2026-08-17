@@ -6,13 +6,13 @@
 //! This test runs `memoize_by` on a diamond DAG under both Fused and
 //! Funnel to confirm the scoped-borrow fix covers both regimes.
 
-use std::collections::HashMap;
-use std::sync::Arc;
-use crate::{TreeishPipeline, PipelineExec, Stage2SugarsShared};
+use crate::{PipelineExec, Stage2SugarsShared, TreeishPipeline};
+use hylic::domain::Shared;
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
 use hylic::graph::treeish;
-use hylic::domain::Shared;
+use std::collections::HashMap;
+use std::sync::Arc;
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 struct NodeId(u32);
@@ -54,6 +54,9 @@ fn memoize_by_under_funnel_terminates() {
     let r: u32 = diamond_pipeline()
         .lift()
         .memoize_by(|n: &NodeId| n.0)
-        .run_from_node(&dom::exec(funnel::Spec::default(4)), &NodeId(0));
+        .run_from_node(
+            &dom::exec(funnel::Spec::default(4)),
+            &NodeId(0),
+        );
     assert_eq!(r, 7);
 }

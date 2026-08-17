@@ -17,8 +17,8 @@ use std::sync::Arc;
 
 use hylic::domain::Shared;
 use hylic::domain::shared::fold::Fold;
-use hylic::ops::{ShapeLift, SeedNode};
 use hylic::ops::seed_node_internal::{self as sn_int, SeedNodeInner};
+use hylic::ops::{SeedNode, ShapeLift};
 use hylic::prelude::explainer::{ExplainerHeap, ExplainerResult};
 
 use super::{Identity, SeedWrap, Wrap};
@@ -31,119 +31,117 @@ use super::{Identity, SeedWrap, Wrap};
 #[allow(missing_docs)] // method docs live on the trait — bodies are mechanical
 pub trait WrapShared: Wrap {
     // ANCHOR: wrap_shared_build_init_signature
-    fn build_wrap_init<UN, H, R, W>(w: W)
-        -> ShapeLift<Shared, Self::Of<UN>, H, R, Self::Of<UN>, H, R>
+    fn build_wrap_init<UN, H, R, W>(w: W) -> ShapeLift<Shared, Self::Of<UN>, H, R, Self::Of<UN>, H, R>
     where
         UN: Clone + Send + Sync + 'static,
-        H:  Clone + Send + Sync + 'static,
-        R:  Clone + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
         Self::Of<UN>: Clone + Send + Sync + 'static,
         W: Fn(&UN, &dyn Fn(&UN) -> H) -> H + Send + Sync + 'static;
     // ANCHOR_END: wrap_shared_build_init_signature
 
-    fn build_wrap_accumulate<UN, H, R, W>(w: W)
-        -> ShapeLift<Shared, Self::Of<UN>, H, R, Self::Of<UN>, H, R>
+    fn build_wrap_accumulate<UN, H, R, W>(w: W) -> ShapeLift<Shared, Self::Of<UN>, H, R, Self::Of<UN>, H, R>
     where
         UN: Clone + Send + Sync + 'static,
-        H:  Clone + Send + Sync + 'static,
-        R:  Clone + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
         Self::Of<UN>: Clone + Send + Sync + 'static,
         W: Fn(&mut H, &R, &dyn Fn(&mut H, &R)) + Send + Sync + 'static;
 
-    fn build_wrap_finalize<UN, H, R, W>(w: W)
-        -> ShapeLift<Shared, Self::Of<UN>, H, R, Self::Of<UN>, H, R>
+    fn build_wrap_finalize<UN, H, R, W>(w: W) -> ShapeLift<Shared, Self::Of<UN>, H, R, Self::Of<UN>, H, R>
     where
         UN: Clone + Send + Sync + 'static,
-        H:  Clone + Send + Sync + 'static,
-        R:  Clone + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
         Self::Of<UN>: Clone + Send + Sync + 'static,
         W: Fn(&H, &dyn Fn(&H) -> R) -> R + Send + Sync + 'static;
 
-    fn build_zipmap<UN, H, R, Extra, M>(m: M)
-        -> ShapeLift<Shared, Self::Of<UN>, H, R, Self::Of<UN>, H, (R, Extra)>
+    fn build_zipmap<UN, H, R, Extra, M>(m: M) -> ShapeLift<Shared, Self::Of<UN>, H, R, Self::Of<UN>, H, (R, Extra)>
     where
         UN: Clone + Send + Sync + 'static,
-        H:  Clone + Send + Sync + 'static,
-        R:  Clone + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
         Extra: Clone + Send + Sync + 'static,
         Self::Of<UN>: Clone + Send + Sync + 'static,
         M: Fn(&R) -> Extra + Send + Sync + 'static;
 
-    fn build_map_r_bi<UN, H, R, RNew, Fwd, Bwd>(fwd: Fwd, bwd: Bwd)
-        -> ShapeLift<Shared, Self::Of<UN>, H, R, Self::Of<UN>, H, RNew>
+    fn build_map_r_bi<UN, H, R, RNew, Fwd, Bwd>(
+        fwd: Fwd,
+        bwd: Bwd,
+    ) -> ShapeLift<Shared, Self::Of<UN>, H, R, Self::Of<UN>, H, RNew>
     where
         UN: Clone + Send + Sync + 'static,
-        H:  Clone + Send + Sync + 'static,
-        R:  Clone + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
         RNew: Clone + Send + Sync + 'static,
         Self::Of<UN>: Clone + Send + Sync + 'static,
         Fwd: Fn(&R) -> RNew + Send + Sync + 'static,
         Bwd: Fn(&RNew) -> R + Send + Sync + 'static;
 
-    fn build_filter_edges<UN, H, R, P>(pred: P)
-        -> ShapeLift<Shared, Self::Of<UN>, H, R, Self::Of<UN>, H, R>
+    fn build_filter_edges<UN, H, R, P>(pred: P) -> ShapeLift<Shared, Self::Of<UN>, H, R, Self::Of<UN>, H, R>
     where
         UN: Clone + Send + Sync + 'static,
-        H:  Clone + Send + Sync + 'static,
-        R:  Clone + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
         Self::Of<UN>: Clone + Send + Sync + 'static,
         P: Fn(&UN) -> bool + Send + Sync + 'static;
 
-    fn build_memoize_by<UN, H, R, K, KeyFn>(key_fn: KeyFn)
-        -> ShapeLift<Shared, Self::Of<UN>, H, R, Self::Of<UN>, H, R>
+    fn build_memoize_by<UN, H, R, K, KeyFn>(key_fn: KeyFn) -> ShapeLift<Shared, Self::Of<UN>, H, R, Self::Of<UN>, H, R>
     where
         UN: Clone + Send + Sync + 'static,
-        H:  Clone + Send + Sync + 'static,
-        R:  Clone + Send + Sync + 'static,
-        K:  Eq + std::hash::Hash + Clone + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
+        K: Eq + std::hash::Hash + Clone + Send + Sync + 'static,
         Self::Of<UN>: Clone + Send + Sync + 'static,
         KeyFn: Fn(&UN) -> K + Send + Sync + 'static;
 
-    fn build_map_n_bi<UN, UN2, H, R, Co, Contra>(co: Co, contra: Contra)
-        -> ShapeLift<Shared, Self::Of<UN>, H, R, Self::Of<UN2>, H, R>
+    fn build_map_n_bi<UN, UN2, H, R, Co, Contra>(
+        co: Co,
+        contra: Contra,
+    ) -> ShapeLift<Shared, Self::Of<UN>, H, R, Self::Of<UN2>, H, R>
     where
-        UN:  Clone + Send + Sync + 'static,
+        UN: Clone + Send + Sync + 'static,
         UN2: Clone + Send + Sync + 'static,
-        H:   Clone + Send + Sync + 'static,
-        R:   Clone + Send + Sync + 'static,
-        Self::Of<UN>:  Clone + Send + Sync + 'static,
-        Self::Of<UN2>: Clone + Send + Sync + 'static,
-        Co:     Fn(&UN)  -> UN2 + Clone + Send + Sync + 'static,
-        Contra: Fn(&UN2) -> UN  + Clone + Send + Sync + 'static;
-
-    fn build_wrap_visit<UN, H, R, W>(w: W)
-        -> ShapeLift<Shared, Self::Of<UN>, H, R, Self::Of<UN>, H, R>
-    where
-        UN: Clone + Send + Sync + 'static,
-        H:  Clone + Send + Sync + 'static,
-        R:  Clone + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
         Self::Of<UN>: Clone + Send + Sync + 'static,
-        W: Fn(&UN, &mut dyn FnMut(&UN), &dyn Fn(&UN, &mut dyn FnMut(&UN)))
-           + Send + Sync + 'static;
+        Self::Of<UN2>: Clone + Send + Sync + 'static,
+        Co: Fn(&UN) -> UN2 + Clone + Send + Sync + 'static,
+        Contra: Fn(&UN2) -> UN + Clone + Send + Sync + 'static;
 
-    fn build_explain<UN, H, R>()
-        -> ShapeLift<Shared, Self::Of<UN>, H, R,
-                     Self::Of<UN>,
-                     ExplainerHeap<Self::Of<UN>, H, ExplainerResult<Self::Of<UN>, H, R>>,
-                     ExplainerResult<Self::Of<UN>, H, R>>
+    fn build_wrap_visit<UN, H, R, W>(w: W) -> ShapeLift<Shared, Self::Of<UN>, H, R, Self::Of<UN>, H, R>
     where
         UN: Clone + Send + Sync + 'static,
-        H:  Clone + Send + Sync + 'static,
-        R:  Clone + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
+        Self::Of<UN>: Clone + Send + Sync + 'static,
+        W: Fn(&UN, &mut dyn FnMut(&UN), &dyn Fn(&UN, &mut dyn FnMut(&UN))) + Send + Sync + 'static;
+
+    fn build_explain<UN, H, R>() -> ShapeLift<
+        Shared,
+        Self::Of<UN>,
+        H,
+        R,
+        Self::Of<UN>,
+        ExplainerHeap<Self::Of<UN>, H, ExplainerResult<Self::Of<UN>, H, R>>,
+        ExplainerResult<Self::Of<UN>, H, R>,
+    >
+    where
+        UN: Clone + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
         Self::Of<UN>: Clone + Send + Sync + 'static;
 
-    fn build_explain_describe<UN, H, R, FmtFold, Emit>(fmt_ctor: FmtFold, emit: Emit)
-        -> ShapeLift<Shared, Self::Of<UN>, H, R,
-                     Self::Of<UN>,
-                     ExplainerHeap<Self::Of<UN>, H, R>,
-                     R>
+    fn build_explain_describe<UN, H, R, FmtFold, Emit>(
+        fmt_ctor: FmtFold,
+        emit: Emit,
+    ) -> ShapeLift<Shared, Self::Of<UN>, H, R, Self::Of<UN>, ExplainerHeap<Self::Of<UN>, H, R>, R>
     where
         UN: Clone + Send + Sync + 'static,
-        H:  Clone + Send + Sync + 'static,
-        R:  Clone + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
         Self::Of<UN>: Clone + Send + Sync + 'static,
-        FmtFold: Fn() -> Fold<ExplainerHeap<Self::Of<UN>, H, R>, String, String>
-                 + Send + Sync + 'static,
+        FmtFold: Fn() -> Fold<ExplainerHeap<Self::Of<UN>, H, R>, String, String> + Send + Sync + 'static,
         Emit: Fn(&str) + Send + Sync + 'static;
 }
 
@@ -151,58 +149,53 @@ pub trait WrapShared: Wrap {
 
 // ANCHOR: identity_build_wrap_init
 impl WrapShared for Identity {
-    fn build_wrap_init<UN, H, R, W>(w: W)
-        -> ShapeLift<Shared, UN, H, R, UN, H, R>
+    fn build_wrap_init<UN, H, R, W>(w: W) -> ShapeLift<Shared, UN, H, R, UN, H, R>
     where
         UN: Clone + Send + Sync + 'static,
-        H:  Clone + Send + Sync + 'static,
-        R:  Clone + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
         W: Fn(&UN, &dyn Fn(&UN) -> H) -> H + Send + Sync + 'static,
     {
-        Shared::wrap_init_lift::<UN, H, R, _>(w)   // pass-through
+        Shared::wrap_init_lift::<UN, H, R, _>(w) // pass-through
     }
-// ANCHOR_END: identity_build_wrap_init
+    // ANCHOR_END: identity_build_wrap_init
 
-    fn build_wrap_accumulate<UN, H, R, W>(w: W)
-        -> ShapeLift<Shared, UN, H, R, UN, H, R>
+    fn build_wrap_accumulate<UN, H, R, W>(w: W) -> ShapeLift<Shared, UN, H, R, UN, H, R>
     where
         UN: Clone + Send + Sync + 'static,
-        H:  Clone + Send + Sync + 'static,
-        R:  Clone + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
         W: Fn(&mut H, &R, &dyn Fn(&mut H, &R)) + Send + Sync + 'static,
     {
         Shared::wrap_accumulate_lift::<UN, H, R, _>(w)
     }
 
-    fn build_wrap_finalize<UN, H, R, W>(w: W)
-        -> ShapeLift<Shared, UN, H, R, UN, H, R>
+    fn build_wrap_finalize<UN, H, R, W>(w: W) -> ShapeLift<Shared, UN, H, R, UN, H, R>
     where
         UN: Clone + Send + Sync + 'static,
-        H:  Clone + Send + Sync + 'static,
-        R:  Clone + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
         W: Fn(&H, &dyn Fn(&H) -> R) -> R + Send + Sync + 'static,
     {
         Shared::wrap_finalize_lift::<UN, H, R, _>(w)
     }
 
-    fn build_zipmap<UN, H, R, Extra, M>(m: M)
-        -> ShapeLift<Shared, UN, H, R, UN, H, (R, Extra)>
+    fn build_zipmap<UN, H, R, Extra, M>(m: M) -> ShapeLift<Shared, UN, H, R, UN, H, (R, Extra)>
     where
         UN: Clone + Send + Sync + 'static,
-        H:  Clone + Send + Sync + 'static,
-        R:  Clone + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
         Extra: Clone + Send + Sync + 'static,
         M: Fn(&R) -> Extra + Send + Sync + 'static,
     {
         Shared::zipmap_lift::<UN, H, R, Extra, _>(m)
     }
 
-    fn build_map_r_bi<UN, H, R, RNew, Fwd, Bwd>(fwd: Fwd, bwd: Bwd)
-        -> ShapeLift<Shared, UN, H, R, UN, H, RNew>
+    fn build_map_r_bi<UN, H, R, RNew, Fwd, Bwd>(fwd: Fwd, bwd: Bwd) -> ShapeLift<Shared, UN, H, R, UN, H, RNew>
     where
         UN: Clone + Send + Sync + 'static,
-        H:  Clone + Send + Sync + 'static,
-        R:  Clone + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
         RNew: Clone + Send + Sync + 'static,
         Fwd: Fn(&R) -> RNew + Send + Sync + 'static,
         Bwd: Fn(&RNew) -> R + Send + Sync + 'static,
@@ -210,78 +203,68 @@ impl WrapShared for Identity {
         Shared::map_r_bi_lift::<UN, H, R, RNew, _, _>(fwd, bwd)
     }
 
-    fn build_filter_edges<UN, H, R, P>(pred: P)
-        -> ShapeLift<Shared, UN, H, R, UN, H, R>
+    fn build_filter_edges<UN, H, R, P>(pred: P) -> ShapeLift<Shared, UN, H, R, UN, H, R>
     where
         UN: Clone + Send + Sync + 'static,
-        H:  Clone + Send + Sync + 'static,
-        R:  Clone + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
         P: Fn(&UN) -> bool + Send + Sync + 'static,
     {
         Shared::filter_edges_lift::<UN, H, R, _>(pred)
     }
 
-    fn build_memoize_by<UN, H, R, K, KeyFn>(key_fn: KeyFn)
-        -> ShapeLift<Shared, UN, H, R, UN, H, R>
+    fn build_memoize_by<UN, H, R, K, KeyFn>(key_fn: KeyFn) -> ShapeLift<Shared, UN, H, R, UN, H, R>
     where
         UN: Clone + Send + Sync + 'static,
-        H:  Clone + Send + Sync + 'static,
-        R:  Clone + Send + Sync + 'static,
-        K:  Eq + std::hash::Hash + Clone + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
+        K: Eq + std::hash::Hash + Clone + Send + Sync + 'static,
         KeyFn: Fn(&UN) -> K + Send + Sync + 'static,
     {
         Shared::memoize_by_lift::<UN, H, R, K, _>(key_fn)
     }
 
-    fn build_map_n_bi<UN, UN2, H, R, Co, Contra>(co: Co, contra: Contra)
-        -> ShapeLift<Shared, UN, H, R, UN2, H, R>
+    fn build_map_n_bi<UN, UN2, H, R, Co, Contra>(co: Co, contra: Contra) -> ShapeLift<Shared, UN, H, R, UN2, H, R>
     where
-        UN:  Clone + Send + Sync + 'static,
+        UN: Clone + Send + Sync + 'static,
         UN2: Clone + Send + Sync + 'static,
-        H:   Clone + Send + Sync + 'static,
-        R:   Clone + Send + Sync + 'static,
-        Co:     Fn(&UN)  -> UN2 + Clone + Send + Sync + 'static,
-        Contra: Fn(&UN2) -> UN  + Clone + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
+        Co: Fn(&UN) -> UN2 + Clone + Send + Sync + 'static,
+        Contra: Fn(&UN2) -> UN + Clone + Send + Sync + 'static,
     {
         Shared::map_n_bi_lift::<UN, H, R, UN2, _, _>(co, contra)
     }
 
-    fn build_wrap_visit<UN, H, R, W>(w: W)
-        -> ShapeLift<Shared, UN, H, R, UN, H, R>
+    fn build_wrap_visit<UN, H, R, W>(w: W) -> ShapeLift<Shared, UN, H, R, UN, H, R>
     where
         UN: Clone + Send + Sync + 'static,
-        H:  Clone + Send + Sync + 'static,
-        R:  Clone + Send + Sync + 'static,
-        W: Fn(&UN, &mut dyn FnMut(&UN), &dyn Fn(&UN, &mut dyn FnMut(&UN)))
-           + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
+        W: Fn(&UN, &mut dyn FnMut(&UN), &dyn Fn(&UN, &mut dyn FnMut(&UN))) + Send + Sync + 'static,
     {
         Shared::wrap_visit_lift::<UN, H, R, _>(w)
     }
 
     fn build_explain<UN, H, R>()
-        -> ShapeLift<Shared, UN, H, R,
-                     UN,
-                     ExplainerHeap<UN, H, ExplainerResult<UN, H, R>>,
-                     ExplainerResult<UN, H, R>>
+    -> ShapeLift<Shared, UN, H, R, UN, ExplainerHeap<UN, H, ExplainerResult<UN, H, R>>, ExplainerResult<UN, H, R>>
     where
         UN: Clone + Send + Sync + 'static,
-        H:  Clone + Send + Sync + 'static,
-        R:  Clone + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
     {
         Shared::explainer_lift::<UN, H, R>()
     }
 
-    fn build_explain_describe<UN, H, R, FmtFold, Emit>(fmt_ctor: FmtFold, emit: Emit)
-        -> ShapeLift<Shared, UN, H, R,
-                     UN,
-                     ExplainerHeap<UN, H, R>,
-                     R>
+    fn build_explain_describe<UN, H, R, FmtFold, Emit>(
+        fmt_ctor: FmtFold,
+        emit: Emit,
+    ) -> ShapeLift<Shared, UN, H, R, UN, ExplainerHeap<UN, H, R>, R>
     where
         UN: Clone + Send + Sync + 'static,
-        H:  Clone + Send + Sync + 'static,
-        R:  Clone + Send + Sync + 'static,
-        FmtFold: Fn() -> Fold<ExplainerHeap<UN, H, R>, String, String>
-                 + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
+        FmtFold: Fn() -> Fold<ExplainerHeap<UN, H, R>, String, String> + Send + Sync + 'static,
         Emit: Fn(&str) + Send + Sync + 'static,
     {
         Shared::explainer_describe_lift::<UN, H, R, _, _>(fmt_ctor, emit)
@@ -292,72 +275,70 @@ impl WrapShared for Identity {
 
 // ANCHOR: seedwrap_build_wrap_init
 impl WrapShared for SeedWrap {
-    fn build_wrap_init<UN, H, R, W>(w: W)
-        -> ShapeLift<Shared, SeedNode<UN>, H, R, SeedNode<UN>, H, R>
+    fn build_wrap_init<UN, H, R, W>(w: W) -> ShapeLift<Shared, SeedNode<UN>, H, R, SeedNode<UN>, H, R>
     where
         UN: Clone + Send + Sync + 'static,
-        H:  Clone + Send + Sync + 'static,
-        R:  Clone + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
         W: Fn(&UN, &dyn Fn(&UN) -> H) -> H + Send + Sync + 'static,
     {
         let user = Arc::new(w);
         // Adapter for the SeedNode<UN>-typed chain: peel Node(_), pass EntryRoot.
-        let lifted = move |ln: &SeedNode<UN>,
-                           orig: &dyn Fn(&SeedNode<UN>) -> H| -> H
-        {
+        let lifted = move |ln: &SeedNode<UN>, orig: &dyn Fn(&SeedNode<UN>) -> H| -> H {
             match sn_int::inner(ln) {
                 SeedNodeInner::Node(n) => {
                     let user = user.clone();
-                    user(n, &|inner: &UN| orig(&sn_int::node(inner.clone())))
+                    user(n, &|inner: &UN| {
+                        orig(&sn_int::node(inner.clone()))
+                    })
                 }
                 SeedNodeInner::EntryRoot => orig(ln),
             }
         };
         Shared::wrap_init_lift::<SeedNode<UN>, H, R, _>(lifted)
     }
-// ANCHOR_END: seedwrap_build_wrap_init
+    // ANCHOR_END: seedwrap_build_wrap_init
 
-    fn build_wrap_accumulate<UN, H, R, W>(w: W)
-        -> ShapeLift<Shared, SeedNode<UN>, H, R, SeedNode<UN>, H, R>
+    fn build_wrap_accumulate<UN, H, R, W>(w: W) -> ShapeLift<Shared, SeedNode<UN>, H, R, SeedNode<UN>, H, R>
     where
         UN: Clone + Send + Sync + 'static,
-        H:  Clone + Send + Sync + 'static,
-        R:  Clone + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
         W: Fn(&mut H, &R, &dyn Fn(&mut H, &R)) + Send + Sync + 'static,
     {
         // No N in signature — uniform application; same as Identity.
         Shared::wrap_accumulate_lift::<SeedNode<UN>, H, R, _>(w)
     }
 
-    fn build_wrap_finalize<UN, H, R, W>(w: W)
-        -> ShapeLift<Shared, SeedNode<UN>, H, R, SeedNode<UN>, H, R>
+    fn build_wrap_finalize<UN, H, R, W>(w: W) -> ShapeLift<Shared, SeedNode<UN>, H, R, SeedNode<UN>, H, R>
     where
         UN: Clone + Send + Sync + 'static,
-        H:  Clone + Send + Sync + 'static,
-        R:  Clone + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
         W: Fn(&H, &dyn Fn(&H) -> R) -> R + Send + Sync + 'static,
     {
         Shared::wrap_finalize_lift::<SeedNode<UN>, H, R, _>(w)
     }
 
-    fn build_zipmap<UN, H, R, Extra, M>(m: M)
-        -> ShapeLift<Shared, SeedNode<UN>, H, R, SeedNode<UN>, H, (R, Extra)>
+    fn build_zipmap<UN, H, R, Extra, M>(m: M) -> ShapeLift<Shared, SeedNode<UN>, H, R, SeedNode<UN>, H, (R, Extra)>
     where
         UN: Clone + Send + Sync + 'static,
-        H:  Clone + Send + Sync + 'static,
-        R:  Clone + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
         Extra: Clone + Send + Sync + 'static,
         M: Fn(&R) -> Extra + Send + Sync + 'static,
     {
         Shared::zipmap_lift::<SeedNode<UN>, H, R, Extra, _>(m)
     }
 
-    fn build_map_r_bi<UN, H, R, RNew, Fwd, Bwd>(fwd: Fwd, bwd: Bwd)
-        -> ShapeLift<Shared, SeedNode<UN>, H, R, SeedNode<UN>, H, RNew>
+    fn build_map_r_bi<UN, H, R, RNew, Fwd, Bwd>(
+        fwd: Fwd,
+        bwd: Bwd,
+    ) -> ShapeLift<Shared, SeedNode<UN>, H, R, SeedNode<UN>, H, RNew>
     where
         UN: Clone + Send + Sync + 'static,
-        H:  Clone + Send + Sync + 'static,
-        R:  Clone + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
         RNew: Clone + Send + Sync + 'static,
         Fwd: Fn(&R) -> RNew + Send + Sync + 'static,
         Bwd: Fn(&RNew) -> R + Send + Sync + 'static,
@@ -365,12 +346,11 @@ impl WrapShared for SeedWrap {
         Shared::map_r_bi_lift::<SeedNode<UN>, H, R, RNew, _, _>(fwd, bwd)
     }
 
-    fn build_filter_edges<UN, H, R, P>(pred: P)
-        -> ShapeLift<Shared, SeedNode<UN>, H, R, SeedNode<UN>, H, R>
+    fn build_filter_edges<UN, H, R, P>(pred: P) -> ShapeLift<Shared, SeedNode<UN>, H, R, SeedNode<UN>, H, R>
     where
         UN: Clone + Send + Sync + 'static,
-        H:  Clone + Send + Sync + 'static,
-        R:  Clone + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
         P: Fn(&UN) -> bool + Send + Sync + 'static,
     {
         let p = Arc::new(pred);
@@ -385,13 +365,12 @@ impl WrapShared for SeedWrap {
         Shared::filter_edges_lift::<SeedNode<UN>, H, R, _>(lifted)
     }
 
-    fn build_memoize_by<UN, H, R, K, KeyFn>(key_fn: KeyFn)
-        -> ShapeLift<Shared, SeedNode<UN>, H, R, SeedNode<UN>, H, R>
+    fn build_memoize_by<UN, H, R, K, KeyFn>(key_fn: KeyFn) -> ShapeLift<Shared, SeedNode<UN>, H, R, SeedNode<UN>, H, R>
     where
         UN: Clone + Send + Sync + 'static,
-        H:  Clone + Send + Sync + 'static,
-        R:  Clone + Send + Sync + 'static,
-        K:  Eq + std::hash::Hash + Clone + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
+        K: Eq + std::hash::Hash + Clone + Send + Sync + 'static,
         KeyFn: Fn(&UN) -> K + Send + Sync + 'static,
     {
         let key = Arc::new(key_fn);
@@ -405,17 +384,19 @@ impl WrapShared for SeedWrap {
         Shared::memoize_by_lift::<SeedNode<UN>, H, R, Option<K>, _>(lifted)
     }
 
-    fn build_map_n_bi<UN, UN2, H, R, Co, Contra>(co: Co, contra: Contra)
-        -> ShapeLift<Shared, SeedNode<UN>, H, R, SeedNode<UN2>, H, R>
+    fn build_map_n_bi<UN, UN2, H, R, Co, Contra>(
+        co: Co,
+        contra: Contra,
+    ) -> ShapeLift<Shared, SeedNode<UN>, H, R, SeedNode<UN2>, H, R>
     where
-        UN:  Clone + Send + Sync + 'static,
+        UN: Clone + Send + Sync + 'static,
         UN2: Clone + Send + Sync + 'static,
-        H:   Clone + Send + Sync + 'static,
-        R:   Clone + Send + Sync + 'static,
-        Co:     Fn(&UN)  -> UN2 + Send + Sync + 'static,
-        Contra: Fn(&UN2) -> UN  + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
+        Co: Fn(&UN) -> UN2 + Send + Sync + 'static,
+        Contra: Fn(&UN2) -> UN + Send + Sync + 'static,
     {
-        let co_arc     = Arc::new(co);
+        let co_arc = Arc::new(co);
         let contra_arc = Arc::new(contra);
         let lifted_co = {
             let c = co_arc.clone();
@@ -438,14 +419,12 @@ impl WrapShared for SeedWrap {
         Shared::map_n_bi_lift::<SeedNode<UN>, H, R, SeedNode<UN2>, _, _>(lifted_co, lifted_contra)
     }
 
-    fn build_wrap_visit<UN, H, R, W>(w: W)
-        -> ShapeLift<Shared, SeedNode<UN>, H, R, SeedNode<UN>, H, R>
+    fn build_wrap_visit<UN, H, R, W>(w: W) -> ShapeLift<Shared, SeedNode<UN>, H, R, SeedNode<UN>, H, R>
     where
         UN: Clone + Send + Sync + 'static,
-        H:  Clone + Send + Sync + 'static,
-        R:  Clone + Send + Sync + 'static,
-        W: Fn(&UN, &mut dyn FnMut(&UN), &dyn Fn(&UN, &mut dyn FnMut(&UN)))
-           + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
+        W: Fn(&UN, &mut dyn FnMut(&UN), &dyn Fn(&UN, &mut dyn FnMut(&UN))) + Send + Sync + 'static,
     {
         let user = Arc::new(w);
         let lifted = move |ln: &SeedNode<UN>,
@@ -456,8 +435,11 @@ impl WrapShared for SeedWrap {
                     let user = user.clone();
                     let mut wrap_cb = |un: &UN| cb(&sn_int::node(un.clone()));
                     let wrap_orig = |un: &UN, inner_cb: &mut dyn FnMut(&UN)| {
-                        let mut wrapped =
-                            |sn: &SeedNode<UN>| if let Some(inner) = sn.as_node() { inner_cb(inner); };
+                        let mut wrapped = |sn: &SeedNode<UN>| {
+                            if let Some(inner) = sn.as_node() {
+                                inner_cb(inner);
+                            }
+                        };
                         orig(&sn_int::node(un.clone()), &mut wrapped);
                     };
                     user(n, &mut wrap_cb, &wrap_orig);
@@ -468,30 +450,32 @@ impl WrapShared for SeedWrap {
         Shared::wrap_visit_lift::<SeedNode<UN>, H, R, _>(lifted)
     }
 
-    fn build_explain<UN, H, R>()
-        -> ShapeLift<Shared, SeedNode<UN>, H, R,
-                     SeedNode<UN>,
-                     ExplainerHeap<SeedNode<UN>, H, ExplainerResult<SeedNode<UN>, H, R>>,
-                     ExplainerResult<SeedNode<UN>, H, R>>
+    fn build_explain<UN, H, R>() -> ShapeLift<
+        Shared,
+        SeedNode<UN>,
+        H,
+        R,
+        SeedNode<UN>,
+        ExplainerHeap<SeedNode<UN>, H, ExplainerResult<SeedNode<UN>, H, R>>,
+        ExplainerResult<SeedNode<UN>, H, R>,
+    >
     where
         UN: Clone + Send + Sync + 'static,
-        H:  Clone + Send + Sync + 'static,
-        R:  Clone + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
     {
         Shared::explainer_lift::<SeedNode<UN>, H, R>()
     }
 
-    fn build_explain_describe<UN, H, R, FmtFold, Emit>(fmt_ctor: FmtFold, emit: Emit)
-        -> ShapeLift<Shared, SeedNode<UN>, H, R,
-                     SeedNode<UN>,
-                     ExplainerHeap<SeedNode<UN>, H, R>,
-                     R>
+    fn build_explain_describe<UN, H, R, FmtFold, Emit>(
+        fmt_ctor: FmtFold,
+        emit: Emit,
+    ) -> ShapeLift<Shared, SeedNode<UN>, H, R, SeedNode<UN>, ExplainerHeap<SeedNode<UN>, H, R>, R>
     where
         UN: Clone + Send + Sync + 'static,
-        H:  Clone + Send + Sync + 'static,
-        R:  Clone + Send + Sync + 'static,
-        FmtFold: Fn() -> Fold<ExplainerHeap<SeedNode<UN>, H, R>, String, String>
-                 + Send + Sync + 'static,
+        H: Clone + Send + Sync + 'static,
+        R: Clone + Send + Sync + 'static,
+        FmtFold: Fn() -> Fold<ExplainerHeap<SeedNode<UN>, H, R>, String, String> + Send + Sync + 'static,
         Emit: Fn(&str) + Send + Sync + 'static,
     {
         Shared::explainer_describe_lift::<SeedNode<UN>, H, R, _, _>(fmt_ctor, emit)

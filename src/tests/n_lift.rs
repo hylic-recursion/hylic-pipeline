@@ -6,15 +6,18 @@
 //! motivates `n_lift` — the alternative is a named struct
 //! with an `impl Lift<N, H, R>` body, ~30 LOC.
 
-use std::sync::Arc;
-use crate::{TreeishPipeline, PipelineExec};
+use crate::{PipelineExec, TreeishPipeline};
+use hylic::domain::Shared;
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
-use hylic::graph::{treeish, treeish_visit, Treeish};
-use hylic::domain::Shared;
+use hylic::graph::{Treeish, treeish, treeish_visit};
+use std::sync::Arc;
 
 #[derive(Clone, Debug)]
-struct Node { val: u64, children: Vec<Node> }
+struct Node {
+    val: u64,
+    children: Vec<Node>,
+}
 
 /// Wrapper carrying a depth annotation alongside the node. The
 /// bijection here is trivial (depth can be recomputed from context
@@ -22,7 +25,10 @@ struct Node { val: u64, children: Vec<Node> }
 /// constraint because `fold_contra` can discard depth and return
 /// the original Node.
 #[derive(Clone, Debug)]
-struct WithDepth { node: Node, depth: u32 }
+struct WithDepth {
+    node: Node,
+    depth: u32,
+}
 
 #[test]
 fn depth_annotator_via_inline_lift() {
@@ -32,11 +38,20 @@ fn depth_annotator_via_inline_lift() {
             Node {
                 val: 10,
                 children: vec![
-                    Node { val: 1, children: vec![] },
-                    Node { val: 2, children: vec![] },
+                    Node {
+                        val: 1,
+                        children: vec![],
+                    },
+                    Node {
+                        val: 2,
+                        children: vec![],
+                    },
                 ],
             },
-            Node { val: 20, children: vec![] },
+            Node {
+                val: 20,
+                children: vec![],
+            },
         ],
     };
 
@@ -58,12 +73,17 @@ fn depth_annotator_via_inline_lift() {
         // build_treeish: &Treeish<N> → Treeish<N2>. Walks parents.
         move |old_treeish: &Treeish<Node>| -> Treeish<WithDepth> {
             let old = old_treeish.clone();
-            treeish_visit(move |wd: &WithDepth, cb: &mut dyn FnMut(&WithDepth)| {
-                let child_depth = wd.depth + 1;
-                old.visit(&wd.node, &mut |child: &Node| {
-                    cb(&WithDepth { node: child.clone(), depth: child_depth });
-                });
-            })
+            treeish_visit(
+                move |wd: &WithDepth, cb: &mut dyn FnMut(&WithDepth)| {
+                    let child_depth = wd.depth + 1;
+                    old.visit(&wd.node, &mut |child: &Node| {
+                        cb(&WithDepth {
+                            node: child.clone(),
+                            depth: child_depth,
+                        });
+                    });
+                },
+            )
         },
         // fold_contra: N2 → N. The inverse of lift_node at the value
         // level — strips depth. Invertible: the fold never cares
@@ -103,14 +123,21 @@ fn depth_annotator_via_inline_lift() {
     //
     // Alternative test: verify the annotation happens correctly via
     // treeish inspection.
-    let pipe = TreeishPipeline::new(base_treeish, &fold(
-        |n: &Node| n.val,
-        |h: &mut u64, c: &u64| *h += c,
-        |h: &u64| *h,
-    ));
-    let r = pipe.lift().then_lift(lift).run_from_node(&dom::exec(funnel::Spec::default(4)), &WithDepth {
-        node: tree.clone(), depth: 0,
-    });
+    let pipe = TreeishPipeline::new(
+        base_treeish,
+        &fold(
+            |n: &Node| n.val,
+            |h: &mut u64, c: &u64| *h += c,
+            |h: &u64| *h,
+        ),
+    );
+    let r = pipe.lift().then_lift(lift).run_from_node(
+        &dom::exec(funnel::Spec::default(4)),
+        &WithDepth {
+            node: tree.clone(),
+            depth: 0,
+        },
+    );
     // With n_lift's fold_contra (strip depth), the fold sees
     // plain Node and sums vals. Depth is threaded through the
     // treeish invisibly but doesn't change the fold result.
@@ -120,8 +147,8 @@ fn depth_annotator_via_inline_lift() {
     // Also verify depth-annotation is visible when we use it:
     // build a separate fold over WithDepth directly and traverse
     // the annotated treeish.
-    let _ = depth_weighted_fold;   // unused in this assertion-only test variant
-    let _ = Arc::new(0u64);        // placeholder; silence unused
+    let _ = depth_weighted_fold; // unused in this assertion-only test variant
+    let _ = Arc::new(0u64); // placeholder; silence unused
 }
 
 #[test]
@@ -131,7 +158,7 @@ fn inline_lift_preserves_identity_on_node_type() {
     #[derive(Clone, Debug, PartialEq)]
     struct Boxed(u64);
 
-    let base_treeish: Treeish<Boxed> = treeish(|_n: &Boxed| Vec::<Boxed>::new());  // leaf only
+    let base_treeish: Treeish<Boxed> = treeish(|_n: &Boxed| Vec::<Boxed>::new()); // leaf only
     let f = fold(
         |n: &Boxed| n.0,
         |h: &mut u64, c: &u64| *h += c,
@@ -146,6 +173,9 @@ fn inline_lift_preserves_identity_on_node_type() {
     let r = TreeishPipeline::new(base_treeish, &f)
         .lift()
         .then_lift(lift)
-        .run_from_node(&dom::exec(funnel::Spec::default(4)), &Boxed(42));
+        .run_from_node(
+            &dom::exec(funnel::Spec::default(4)),
+            &Boxed(42),
+        );
     assert_eq!(r, 42);
 }

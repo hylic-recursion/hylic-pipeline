@@ -1,8 +1,8 @@
 //! Smoke test: user-facing Local-domain imports.
 //! Run: `cargo run --example prelude_local_minimal -p hylic-pipeline`
 
-use hylic_pipeline::prelude::*;
 use hylic::domain::local as ldom;
+use hylic_pipeline::prelude::*;
 
 fn main() {
     let f = ldom::fold(
@@ -15,8 +15,7 @@ fn main() {
         _ => vec![],
     });
 
-    let p: TreeishPipeline<Local, u64, u64, u64> =
-        TreeishPipeline::<Local, _, _, _>::new_local(t, f);
+    let p: TreeishPipeline<Local, u64, u64, u64> = TreeishPipeline::<Local, _, _, _>::new_local(t, f);
 
     let r: u64 = p
         .wrap_init(|n: &u64, orig: &dyn Fn(&u64) -> u64| orig(n) + 1)

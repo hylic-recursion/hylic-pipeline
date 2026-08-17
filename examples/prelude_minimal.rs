@@ -22,8 +22,7 @@ fn main() {
 
     // (3) Build a pipeline and chain sugar methods — all names come
     //     from prelude::*.
-    let p: TreeishPipeline<Shared, u64, u64, u64> =
-        TreeishPipeline::new(t, &f);
+    let p: TreeishPipeline<Shared, u64, u64, u64> = TreeishPipeline::new(t, &f);
 
     let r: (u64, bool) = p
         .wrap_init(|n: &u64, orig: &dyn Fn(&u64) -> u64| orig(n) + 1)
@@ -37,7 +36,11 @@ fn main() {
     // (4) Shared FUSED executor also available via prelude.
     let r2: u64 = TreeishPipeline::<Shared, u64, u64, u64>::new(
         treeish(|n: &u64| if *n == 0 { vec![1] } else { vec![] }),
-        &fold(|n: &u64| *n, |h: &mut u64, c: &u64| *h += c, |h: &u64| *h),
+        &fold(
+            |n: &u64| *n,
+            |h: &mut u64, c: &u64| *h += c,
+            |h: &u64| *h,
+        ),
     )
     .run_from_node(&FUSED, &0u64);
     assert_eq!(r2, 1);

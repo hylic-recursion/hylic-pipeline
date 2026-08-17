@@ -3,18 +3,18 @@
 //! Demonstrates wrap_init, wrap_accumulate, wrap_finalize, zipmap
 //! against a realistic "Task with cost_ms" scenario.
 
+use crate::SeedPipeline;
 #[allow(unused_imports)]
 use crate::Stage2SugarsShared;
-use std::sync::Arc;
-use crate::{SeedPipeline};
+use hylic::domain::Shared;
 use hylic::domain::shared::{self as dom, fold::fold};
 use hylic::exec::funnel;
 use hylic::graph::edgy_visit;
-use hylic::domain::Shared;
+use std::sync::Arc;
 
 #[derive(Clone, Debug)]
 struct Task {
-    id:      u32,
+    id: u32,
     cost_ms: u32,
     depends: Vec<u32>,
 }
@@ -22,15 +22,31 @@ struct Task {
 #[derive(Clone, Debug, Default)]
 struct Cost {
     total_ms: u32,
-    skipped:  u32,
+    skipped: u32,
 }
 
 fn task_registry() -> Arc<Vec<Task>> {
     Arc::new(vec![
-        Task { id: 0, cost_ms: 50,  depends: vec![1, 2] },
-        Task { id: 1, cost_ms: 20,  depends: vec![3]    },
-        Task { id: 2, cost_ms: 30,  depends: vec![]     },
-        Task { id: 3, cost_ms: 100, depends: vec![]     },
+        Task {
+            id: 0,
+            cost_ms: 50,
+            depends: vec![1, 2],
+        },
+        Task {
+            id: 1,
+            cost_ms: 20,
+            depends: vec![3],
+        },
+        Task {
+            id: 2,
+            cost_ms: 30,
+            depends: vec![],
+        },
+        Task {
+            id: 3,
+            cost_ms: 100,
+            depends: vec![],
+        },
     ])
 }
 
@@ -40,14 +56,24 @@ fn cost_pipeline() -> SeedPipeline<Shared, Task, u32, Cost, Cost> {
     let reg_seeds = reg.clone();
 
     let base_fold = fold(
-        |n: &Task| Cost { total_ms: n.cost_ms, skipped: 0 },
-        |h: &mut Cost, c: &Cost| { h.total_ms += c.total_ms; h.skipped += c.skipped; },
+        |n: &Task| Cost {
+            total_ms: n.cost_ms,
+            skipped: 0,
+        },
+        |h: &mut Cost, c: &Cost| {
+            h.total_ms += c.total_ms;
+            h.skipped += c.skipped;
+        },
         |h: &Cost| h.clone(),
     );
-    let seeds = edgy_visit(move |n: &Task, cb: &mut dyn FnMut(&u32)| {
-        let _ = &reg_seeds;
-        for d in &n.depends { cb(d); }
-    });
+    let seeds = edgy_visit(
+        move |n: &Task, cb: &mut dyn FnMut(&u32)| {
+            let _ = &reg_seeds;
+            for d in &n.depends {
+                cb(d);
+            }
+        },
+    );
     SeedPipeline::new(
         move |s: &u32| reg_grow[*s as usize].clone(),
         seeds,
@@ -63,11 +89,17 @@ fn wrap_init_traces_nodes_visited() {
 
     let r: Cost = cost_pipeline()
         .lift()
-        .wrap_init(move |n: &Task, orig: &dyn Fn(&Task) -> Cost| {
-            seen_for_closure.lock().unwrap().push(n.id);
-            orig(n)
-        })
-        .run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u32], Cost::default());
+        .wrap_init(
+            move |n: &Task, orig: &dyn Fn(&Task) -> Cost| {
+                seen_for_closure.lock().unwrap().push(n.id);
+                orig(n)
+            },
+        )
+        .run_from_slice(
+            &dom::exec(funnel::Spec::default(4)),
+            &[0u32],
+            Cost::default(),
+        );
 
     assert_eq!(r.total_ms, 50 + 20 + 30 + 100);
     let mut ids = seen.lock().unwrap().clone();
@@ -84,11 +116,20 @@ fn wrap_accumulate_skips_expensive_children() {
     // normally).
     let r: Cost = cost_pipeline()
         .lift()
-        .wrap_accumulate(|h: &mut Cost, c: &Cost, orig: &dyn Fn(&mut Cost, &Cost)| {
-            if c.total_ms > 150 { h.skipped += c.total_ms; return; }
-            orig(h, c);
-        })
-        .run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u32], Cost::default());
+        .wrap_accumulate(
+            |h: &mut Cost, c: &Cost, orig: &dyn Fn(&mut Cost, &Cost)| {
+                if c.total_ms > 150 {
+                    h.skipped += c.total_ms;
+                    return;
+                }
+                orig(h, c);
+            },
+        )
+        .run_from_slice(
+            &dom::exec(funnel::Spec::default(4)),
+            &[0u32],
+            Cost::default(),
+        );
 
     // Full tree sum = 200; > 150 → Entry routes it to skipped.
     assert_eq!(r.total_ms, 0);
@@ -99,12 +140,20 @@ fn wrap_accumulate_skips_expensive_children() {
 fn wrap_finalize_clamps_total() {
     let r: Cost = cost_pipeline()
         .lift()
-        .wrap_finalize(|h: &Cost, orig: &dyn Fn(&Cost) -> Cost| {
-            let mut out = orig(h);
-            if out.total_ms > 80 { out.total_ms = 80; }
-            out
-        })
-        .run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u32], Cost::default());
+        .wrap_finalize(
+            |h: &Cost, orig: &dyn Fn(&Cost) -> Cost| {
+                let mut out = orig(h);
+                if out.total_ms > 80 {
+                    out.total_ms = 80;
+                }
+                out
+            },
+        )
+        .run_from_slice(
+            &dom::exec(funnel::Spec::default(4)),
+            &[0u32],
+            Cost::default(),
+        );
 
     assert!(r.total_ms <= 80);
 }
@@ -114,11 +163,19 @@ fn zipmap_classifies_by_total() {
     let r: (Cost, &'static str) = cost_pipeline()
         .lift()
         .zipmap(|c: &Cost| -> &'static str {
-            if c.total_ms < 50  { "cheap" }
-            else if c.total_ms < 150 { "moderate" }
-            else                      { "heavy" }
+            if c.total_ms < 50 {
+                "cheap"
+            } else if c.total_ms < 150 {
+                "moderate"
+            } else {
+                "heavy"
+            }
         })
-        .run_from_slice(&dom::exec(funnel::Spec::default(4)), &[0u32], Cost::default());
+        .run_from_slice(
+            &dom::exec(funnel::Spec::default(4)),
+            &[0u32],
+            Cost::default(),
+        );
 
     assert_eq!(r.0.total_ms, 200);
     assert_eq!(r.1, "heavy");
